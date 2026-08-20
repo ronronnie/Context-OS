@@ -1,0 +1,28 @@
+export function productRoute(productId: string) {
+  return `/products/${productId}`;
+}
+
+export function moduleRoute(productId: string, moduleId: string) {
+  return `/products/${productId}/modules/${moduleId}`;
+}
+
+export function featureRoute(
+  productId: string,
+  moduleId: string,
+  featureId: string,
+) {
+  return `/products/${productId}/modules/${moduleId}/features/${featureId}`;
+}
+
+export function knowledgeRoute(
+  productId: string,
+  moduleId: string,
+  featureId: string,
+  knowledgeId: string,
+) {
+  return `${featureRoute(productId, moduleId, featureId)}/knowledge/${knowledgeId}`;
+}
+
+export function sourceRoute(productId: string, sourceId: string) {
+  return `/products/${productId}/sources/${sourceId}`;
+}

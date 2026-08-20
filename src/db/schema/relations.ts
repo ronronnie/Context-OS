@@ -1,0 +1,182 @@
+import { relations } from "drizzle-orm";
+
+import { user } from "@/db/schema/auth";
+import {
+  contextPackItems,
+  contextPacks,
+  featureRelationships,
+  features,
+  knowledgeItems,
+  knowledgeEvents,
+  knowledgeRelationships,
+  knowledgeSources,
+  modules,
+  products,
+  sources,
+  tasks,
+} from "@/db/schema/product-memory";
+
+export const userRelations = relations(user, ({ many }) => ({
+  products: many(products),
+  knowledgeItems: many(knowledgeItems),
+  sources: many(sources),
+  tasks: many(tasks),
+}));
+
+export const productRelations = relations(products, ({ one, many }) => ({
+  owner: one(user, {
+    fields: [products.createdBy],
+    references: [user.id],
+  }),
+  modules: many(modules),
+  features: many(features),
+  knowledgeItems: many(knowledgeItems),
+  sources: many(sources),
+  tasks: many(tasks),
+  contextPacks: many(contextPacks),
+}));
+
+export const moduleRelations = relations(modules, ({ one, many }) => ({
+  product: one(products, {
+    fields: [modules.productId],
+    references: [products.id],
+  }),
+  features: many(features),
+  knowledgeItems: many(knowledgeItems),
+  sources: many(sources),
+}));
+
+export const featureRelations = relations(features, ({ one, many }) => ({
+  product: one(products, {
+    fields: [features.productId],
+    references: [products.id],
+  }),
+  module: one(modules, {
+    fields: [features.moduleId],
+    references: [modules.id],
+  }),
+  knowledgeItems: many(knowledgeItems),
+  sources: many(sources),
+  outgoingRelationships: many(featureRelationships, {
+    relationName: "fromFeature",
+  }),
+  incomingRelationships: many(featureRelationships, {
+    relationName: "toFeature",
+  }),
+}));
+
+export const knowledgeItemRelations = relations(knowledgeItems, ({ one, many }) => ({
+  product: one(products, {
+    fields: [knowledgeItems.productId],
+    references: [products.id],
+  }),
+  module: one(modules, {
+    fields: [knowledgeItems.moduleId],
+    references: [modules.id],
+  }),
+  feature: one(features, {
+    fields: [knowledgeItems.featureId],
+    references: [features.id],
+  }),
+  creator: one(user, {
+    fields: [knowledgeItems.createdBy],
+    references: [user.id],
+  }),
+  sourceLinks: many(knowledgeSources),
+  events: many(knowledgeEvents),
+  outgoingRelationships: many(knowledgeRelationships, {
+    relationName: "fromKnowledge",
+  }),
+  incomingRelationships: many(knowledgeRelationships, {
+    relationName: "toKnowledge",
+  }),
+}));
+
+export const knowledgeEventRelations = relations(knowledgeEvents, ({ one }) => ({
+  product: one(products, {
+    fields: [knowledgeEvents.productId],
+    references: [products.id],
+  }),
+  feature: one(features, {
+    fields: [knowledgeEvents.featureId],
+    references: [features.id],
+  }),
+  knowledgeItem: one(knowledgeItems, {
+    fields: [knowledgeEvents.knowledgeItemId],
+    references: [knowledgeItems.id],
+  }),
+  creator: one(user, {
+    fields: [knowledgeEvents.createdBy],
+    references: [user.id],
+  }),
+}));
+
+export const sourceRelations = relations(sources, ({ one, many }) => ({
+  product: one(products, {
+    fields: [sources.productId],
+    references: [products.id],
+  }),
+  module: one(modules, {
+    fields: [sources.moduleId],
+    references: [modules.id],
+  }),
+  feature: one(features, {
+    fields: [sources.featureId],
+    references: [features.id],
+  }),
+  creator: one(user, {
+    fields: [sources.createdBy],
+    references: [user.id],
+  }),
+  knowledgeLinks: many(knowledgeSources),
+}));
+
+export const knowledgeSourceRelations = relations(knowledgeSources, ({ one }) => ({
+  knowledgeItem: one(knowledgeItems, {
+    fields: [knowledgeSources.knowledgeItemId],
+    references: [knowledgeItems.id],
+  }),
+  source: one(sources, {
+    fields: [knowledgeSources.sourceId],
+    references: [sources.id],
+  }),
+}));
+
+export const taskRelations = relations(tasks, ({ one, many }) => ({
+  product: one(products, {
+    fields: [tasks.productId],
+    references: [products.id],
+  }),
+  primaryFeature: one(features, {
+    fields: [tasks.primaryFeatureId],
+    references: [features.id],
+  }),
+  creator: one(user, {
+    fields: [tasks.createdBy],
+    references: [user.id],
+  }),
+  contextPacks: many(contextPacks),
+}));
+
+export const contextPackRelations = relations(contextPacks, ({ one, many }) => ({
+  task: one(tasks, {
+    fields: [contextPacks.taskId],
+    references: [tasks.id],
+  }),
+  product: one(products, {
+    fields: [contextPacks.productId],
+    references: [products.id],
+  }),
+  items: many(contextPackItems),
+}));
+
+export const contextPackItemRelations = relations(contextPackItems, ({ one }) => ({
+  contextPack: one(contextPacks, {
+    fields: [contextPackItems.contextPackId],
+    references: [contextPacks.id],
+  }),
+  knowledgeItem: one(knowledgeItems, {
+    fields: [contextPackItems.knowledgeItemId],
+    references: [knowledgeItems.id],
+  }),
+}));
