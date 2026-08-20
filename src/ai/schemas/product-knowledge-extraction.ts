@@ -27,18 +27,18 @@ export const extractionCandidateSchema = z.object({
   title: z.string().trim().min(1),
   body: z.string().trim().min(1),
   knowledgeType: knowledgeTypeSchema,
-  authority: authoritySchema,
+  suggestedAuthority: authoritySchema,
   confidence: z.number().int().min(0).max(100),
-  lifecycleStatus: z.literal("proposed"),
+  reasoningSummary: z.string().trim().min(1),
   sourceEvidence: z.array(
     z.object({
       sourceId: z.string().trim().min(1),
       supportingText: z.string().trim().min(1),
     }),
   ).min(1),
-  relationshipHints: z.array(z.string().trim().min(1)).default([]),
-  contradictionHints: z.array(z.string().trim().min(1)).default([]),
-  needsHumanReview: z.literal(true),
+  potentialRelationships: z.array(z.string().trim().min(1)).default([]),
+  appearsHistorical: z.boolean().default(false),
+  possibleConflicts: z.array(z.string().trim().min(1)).default([]),
 });
 
 export const productKnowledgeExtractionSchema = z.object({

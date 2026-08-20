@@ -36,6 +36,13 @@
       "when": 1787169966286,
       "tag": "0004_steep_black_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787232836006,
+      "tag": "0005_chubby_blackheart",
+      "breakpoints": true
     }
   ]
 }

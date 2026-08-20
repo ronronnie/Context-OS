@@ -1,5 +1,6 @@
 import {
   index,
+  boolean,
   integer,
   jsonb,
   pgEnum,
@@ -66,6 +67,16 @@ export const knowledgeEventTypeEnum = pgEnum("knowledge_event_type", [
   "decision_added",
   "rejected_approach_added",
 ]);
+
+export const sourceExtractionStatusEnum = pgEnum("source_extraction_status", [
+  "ready",
+  "failed",
+]);
+
+export const extractionCandidateStatusEnum = pgEnum(
+  "extraction_candidate_status",
+  ["pending", "approved", "rejected"],
+);
 
 export const products = pgTable("products", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -171,6 +182,70 @@ export const knowledgeSources = pgTable("knowledge_sources", {
 }, (table) => [
   primaryKey({ columns: [table.knowledgeItemId, table.sourceId] }),
   index("knowledge_sources_source_id_idx").on(table.sourceId),
+]);
+
+export const sourceExtractions = pgTable("source_extractions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  productId: uuid("product_id").notNull().references(() => products.id),
+  sourceId: uuid("source_id").notNull().references(() => sources.id, {
+    onDelete: "cascade",
+  }),
+  status: sourceExtractionStatusEnum("status").notNull().default("ready"),
+  skippedClaims: jsonb("skipped_claims")
+    .$type<Array<{ claim: string; reason: string }>>()
+    .default([])
+    .notNull(),
+  errorMessage: text("error_message"),
+  createdBy: text("created_by").notNull().references(() => user.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("source_extractions_product_id_idx").on(table.productId),
+  index("source_extractions_source_id_idx").on(table.sourceId),
+  index("source_extractions_created_by_idx").on(table.createdBy),
+]);
+
+export const sourceExtractionCandidates = pgTable("source_extraction_candidates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  extractionId: uuid("extraction_id").notNull().references(() => sourceExtractions.id, {
+    onDelete: "cascade",
+  }),
+  productId: uuid("product_id").notNull().references(() => products.id),
+  sourceId: uuid("source_id").notNull().references(() => sources.id, {
+    onDelete: "cascade",
+  }),
+  moduleId: uuid("module_id").references(() => modules.id),
+  featureId: uuid("feature_id").references(() => features.id),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  knowledgeType: knowledgeTypeEnum("knowledge_type").notNull(),
+  suggestedAuthority: authorityEnum("suggested_authority").notNull(),
+  confidence: integer("confidence").notNull(),
+  reasoningSummary: text("reasoning_summary").notNull().default(""),
+  sourceEvidence: jsonb("source_evidence")
+    .$type<Array<{ sourceId: string; supportingText: string }>>()
+    .default([])
+    .notNull(),
+  potentialRelationships: jsonb("potential_relationships")
+    .$type<string[]>()
+    .default([])
+    .notNull(),
+  appearsHistorical: boolean("appears_historical").notNull().default(false),
+  possibleConflicts: jsonb("possible_conflicts")
+    .$type<string[]>()
+    .default([])
+    .notNull(),
+  status: extractionCandidateStatusEnum("status").notNull().default("pending"),
+  approvedKnowledgeItemId: uuid("approved_knowledge_item_id").references(
+    () => knowledgeItems.id,
+  ),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("source_extraction_candidates_extraction_id_idx").on(table.extractionId),
+  index("source_extraction_candidates_product_id_idx").on(table.productId),
+  index("source_extraction_candidates_source_id_idx").on(table.sourceId),
+  index("source_extraction_candidates_status_idx").on(table.status),
 ]);
 
 export const knowledgeRelationships = pgTable("knowledge_relationships", {

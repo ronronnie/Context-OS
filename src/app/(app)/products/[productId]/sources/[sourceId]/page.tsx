@@ -1,17 +1,23 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { startSourceExtractionAction } from "@/app/actions/source-extraction";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { SectionHeader } from "@/components/section-header";
 import { SourceChip } from "@/components/source-chip";
 import { getSourceDetail } from "@/db/queries";
+import { getRecentSourceExtractions } from "@/db/queries";
 import { requireUser } from "@/lib/auth/session";
-import {
-  getSourceExtractionStatus,
-} from "@/lib/source-ingestion/extraction";
+import { getSourceExtractionStatus } from "@/lib/source-ingestion/extraction";
 import { getSourceTypeLabel } from "@/lib/source-ingestion/source-model";
-import { featureRoute, moduleRoute, productRoute } from "@/lib/routes";
+import {
+  featureRoute,
+  moduleRoute,
+  productRoute,
+  sourceExtractionRoute,
+} from "@/lib/routes";
+import { Button } from "@/components/ui/button";
 
 export default async function SourceDetailPage({
   params,
@@ -27,6 +33,12 @@ export default async function SourceDetailPage({
   }
 
   const extractionStatus = getSourceExtractionStatus();
+  const recentExtractions = await getRecentSourceExtractions(
+    productId,
+    sourceId,
+    user.id,
+  );
+  const startExtraction = startSourceExtractionAction.bind(null, productId, sourceId);
 
   return (
     <div className="space-y-6">
@@ -114,6 +126,26 @@ export default async function SourceDetailPage({
               <p className="text-sm leading-6 text-[var(--muted)]">
                 {extractionStatus.description}
               </p>
+              <form action={startExtraction}>
+                <Button type="submit">Extract Product Knowledge</Button>
+              </form>
+              {recentExtractions.length ? (
+                <div className="space-y-2 border-t border-[var(--border)] pt-3">
+                  <h2 className="text-xs font-semibold uppercase text-[var(--muted)]">
+                    Recent review runs
+                  </h2>
+                  {recentExtractions.map((extraction) => (
+                    <Link
+                      className="block rounded-md border border-[var(--border)] bg-white p-2 text-sm hover:bg-[var(--panel-subtle)]"
+                      href={sourceExtractionRoute(productId, sourceId, extraction.id)}
+                      key={extraction.id}
+                    >
+                      {extraction.status} extraction from{" "}
+                      {extraction.createdAt.toLocaleDateString()}
+                    </Link>
+                  ))}
+                </div>
+              ) : null}
               <pre className="max-h-72 overflow-auto rounded-md border border-[var(--border)] bg-white p-3 text-xs leading-5 text-[var(--muted-strong)]">
                 {JSON.stringify(detail.extractionInput, null, 2)}
               </pre>

@@ -4,4 +4,5 @@ export * from "./knowledge";
 export * from "./modules";
 export * from "./products";
 export * from "./sources";
+export * from "./source-extractions";
 export * from "./tasks";

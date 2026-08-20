@@ -52,6 +52,6 @@ export function getSourceExtractionStatus(): SourceExtractionStatus {
     status: "not_started",
     label: "Extraction not started",
     description:
-      "The server-side extraction service can prepare candidates from this source; the review UI is intentionally not wired yet.",
+      "Run AI extraction to create review candidates from this source. Approved candidates become verified Product Memory.",
   };
 }

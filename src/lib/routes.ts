@@ -26,3 +26,11 @@ export function knowledgeRoute(
 export function sourceRoute(productId: string, sourceId: string) {
   return `/products/${productId}/sources/${sourceId}`;
 }
+
+export function sourceExtractionRoute(
+  productId: string,
+  sourceId: string,
+  extractionId: string,
+) {
+  return `${sourceRoute(productId, sourceId)}/extractions/${extractionId}`;
+}

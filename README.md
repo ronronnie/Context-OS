@@ -116,6 +116,7 @@ Do not duplicate authentication data in a separate profile model unless Context 
 - Knowledge detail pages show full body, source evidence, relationships, lifecycle history, valid dates, and created/updated metadata.
 - Manual Source Ingestion supports product/module/feature attachment, source type validation, metadata JSON, raw content storage, source detail pages, connected knowledge display, and an extraction handoff shape for the later AI extraction prompt.
 - AI provider abstraction supports server-side text, structured output, and embedding operations with timeout, retry, error handling, malformed response handling, and a Product Memory extraction operation that returns proposed candidates only.
+- AI Knowledge Extraction can run from a raw Source, persist atomic candidates for review, and only write approved candidates into verified Product Memory with source evidence attached.
 
 ## Product Architecture Workflow
 
@@ -153,6 +154,14 @@ Open `/sources` after signing in to manually add fictional source evidence. A so
 Supported source types are `note`, `prd`, `jira_ticket`, `figma_link`, `figma_notes`, `research_note`, `release_note`, `slack_summary`, `code_note`, `design_system_doc`, and `meeting_note`.
 
 Each source detail page shows metadata, raw content, graph attachment, connected knowledge items, and an extraction status placeholder. Sources remain evidence records; trusted Product Memory still requires structured knowledge linked to sources and human verification.
+
+## AI Knowledge Extraction Workflow
+
+From a source detail page, click `Extract Product Knowledge` to send the source plus product/module/feature context to the server-side AI provider. The model is instructed to extract discrete product facts rather than summarize the document.
+
+The review screen shows each candidate with title, type, confidence, suggested authority, source evidence, reasoning summary, possible relationships, historical state, and possible conflicts. Candidates can be edited before approval, rejected, or approved all at once.
+
+Only approved candidates become `knowledge_items`, and they are created as verified Product Memory with a `knowledge_sources` evidence link back to the source. Pending and rejected candidates remain extraction review records and do not enter trusted Product Memory.
 
 ## AI Provider Architecture
 

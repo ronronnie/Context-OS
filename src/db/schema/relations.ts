@@ -12,6 +12,8 @@ import {
   knowledgeSources,
   modules,
   products,
+  sourceExtractionCandidates,
+  sourceExtractions,
   sources,
   tasks,
 } from "@/db/schema/product-memory";
@@ -32,6 +34,7 @@ export const productRelations = relations(products, ({ one, many }) => ({
   features: many(features),
   knowledgeItems: many(knowledgeItems),
   sources: many(sources),
+  sourceExtractions: many(sourceExtractions),
   tasks: many(tasks),
   contextPacks: many(contextPacks),
 }));
@@ -129,7 +132,55 @@ export const sourceRelations = relations(sources, ({ one, many }) => ({
     references: [user.id],
   }),
   knowledgeLinks: many(knowledgeSources),
+  extractions: many(sourceExtractions),
+  extractionCandidates: many(sourceExtractionCandidates),
 }));
+
+export const sourceExtractionRelations = relations(sourceExtractions, ({ one, many }) => ({
+  product: one(products, {
+    fields: [sourceExtractions.productId],
+    references: [products.id],
+  }),
+  source: one(sources, {
+    fields: [sourceExtractions.sourceId],
+    references: [sources.id],
+  }),
+  creator: one(user, {
+    fields: [sourceExtractions.createdBy],
+    references: [user.id],
+  }),
+  candidates: many(sourceExtractionCandidates),
+}));
+
+export const sourceExtractionCandidateRelations = relations(
+  sourceExtractionCandidates,
+  ({ one }) => ({
+    extraction: one(sourceExtractions, {
+      fields: [sourceExtractionCandidates.extractionId],
+      references: [sourceExtractions.id],
+    }),
+    product: one(products, {
+      fields: [sourceExtractionCandidates.productId],
+      references: [products.id],
+    }),
+    source: one(sources, {
+      fields: [sourceExtractionCandidates.sourceId],
+      references: [sources.id],
+    }),
+    module: one(modules, {
+      fields: [sourceExtractionCandidates.moduleId],
+      references: [modules.id],
+    }),
+    feature: one(features, {
+      fields: [sourceExtractionCandidates.featureId],
+      references: [features.id],
+    }),
+    approvedKnowledgeItem: one(knowledgeItems, {
+      fields: [sourceExtractionCandidates.approvedKnowledgeItemId],
+      references: [knowledgeItems.id],
+    }),
+  }),
+);
 
 export const knowledgeSourceRelations = relations(knowledgeSources, ({ one }) => ({
   knowledgeItem: one(knowledgeItems, {
