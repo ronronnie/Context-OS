@@ -34,6 +34,7 @@ Set these in `.env.local`. Do not commit real secrets.
 DATABASE_URL="postgres://user:password@host.neon.tech/context_os?sslmode=require"
 BETTER_AUTH_SECRET="replace-with-a-long-random-secret"
 BETTER_AUTH_URL="http://localhost:3000"
+BETTER_AUTH_TRUSTED_ORIGINS="http://localhost:3000,http://127.0.0.1:3000"
 NEON_AUTH_CLIENT_ID=""
 NEON_AUTH_CLIENT_SECRET=""
 NEON_AUTH_ISSUER=""
@@ -55,7 +56,8 @@ AI_EMBEDDING_DIMENSIONS="1536"
 2. Copy the pooled or direct connection string into `DATABASE_URL`.
 3. Configure `BETTER_AUTH_SECRET` with a long random value.
 4. Set `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` to the local or deployed app URL.
-5. Run migrations and seed the fictional dataset.
+5. Add any extra local, preview, or production origins to `BETTER_AUTH_TRUSTED_ORIGINS`.
+6. Run migrations and seed the fictional dataset.
 
 ## Database Commands
 

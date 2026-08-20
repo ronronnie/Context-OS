@@ -3,6 +3,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
 import { createDb } from "@/db";
 import * as schema from "@/db/schema/index";
+import { getAuthBaseURL, getTrustedOrigins } from "@/lib/auth/origins";
 
 const databaseUrl =
   process.env.DATABASE_URL ??
@@ -10,7 +11,8 @@ const databaseUrl =
 
 export const auth = betterAuth({
   appName: "Context OS",
-  baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+  baseURL: getAuthBaseURL(),
+  trustedOrigins: getTrustedOrigins(),
   secret:
     process.env.BETTER_AUTH_SECRET ??
     "context-os-development-secret-change-before-production",
