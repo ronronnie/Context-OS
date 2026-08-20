@@ -117,6 +117,7 @@ Do not duplicate authentication data in a separate profile model unless Context 
 - Manual Source Ingestion supports product/module/feature attachment, source type validation, metadata JSON, raw content storage, source detail pages, connected knowledge display, and an extraction handoff shape for the later AI extraction prompt.
 - AI provider abstraction supports server-side text, structured output, and embedding operations with timeout, retry, error handling, malformed response handling, and a Product Memory extraction operation that returns proposed candidates only.
 - AI Knowledge Extraction can run from a raw Source, persist atomic candidates for review, and only write approved candidates into verified Product Memory with source evidence attached.
+- Conflict detection compares extracted candidates to verified memory, surfaces contradictions, supersessions, duplicates, historical/current mismatches, and authority mismatches, and requires explicit human resolution before conflicted candidates enter Product Memory.
 
 ## Product Architecture Workflow
 
@@ -162,6 +163,19 @@ From a source detail page, click `Extract Product Knowledge` to send the source 
 The review screen shows each candidate with title, type, confidence, suggested authority, source evidence, reasoning summary, possible relationships, historical state, and possible conflicts. Candidates can be edited before approval, rejected, or approved all at once.
 
 Only approved candidates become `knowledge_items`, and they are created as verified Product Memory with a `knowledge_sources` evidence link back to the source. Pending and rejected candidates remain extraction review records and do not enter trusted Product Memory.
+
+## Conflict Review Workflow
+
+When extraction creates candidates, Context OS compares them to verified Product Memory in the product, module, feature, and related-feature scope. Potential conflicts are stored as `knowledge_conflicts` with snapshots of the existing memory and the new candidate.
+
+The review screen shows conflict type, evidence, authority, verification dates, affected graph scope, and decision actions:
+
+- `Replace Existing`: approve the new candidate, mark existing memory outdated, and record a `supersedes` relationship.
+- `Keep Both`: approve the new candidate while preserving existing verified memory and recording that both were intentionally kept.
+- `Mark Existing Outdated`: preserve the old item as outdated history and approve the new candidate.
+- `Reject New`: reject the candidate without writing it to Product Memory.
+
+Context OS never deletes old Product Memory during conflict resolution. Outdated historical memory remains queryable with lifecycle metadata.
 
 ## AI Provider Architecture
 

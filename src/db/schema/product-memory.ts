@@ -78,6 +78,25 @@ export const extractionCandidateStatusEnum = pgEnum(
   ["pending", "approved", "rejected"],
 );
 
+export const knowledgeConflictTypeEnum = pgEnum("knowledge_conflict_type", [
+  "contradiction",
+  "supersedes",
+  "duplicate",
+  "historical_as_current",
+  "authority_mismatch",
+]);
+
+export const knowledgeConflictResolutionEnum = pgEnum(
+  "knowledge_conflict_resolution",
+  [
+    "pending",
+    "replace_existing",
+    "keep_both",
+    "mark_existing_outdated",
+    "reject_new",
+  ],
+);
+
 export const products = pgTable("products", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
@@ -246,6 +265,47 @@ export const sourceExtractionCandidates = pgTable("source_extraction_candidates"
   index("source_extraction_candidates_product_id_idx").on(table.productId),
   index("source_extraction_candidates_source_id_idx").on(table.sourceId),
   index("source_extraction_candidates_status_idx").on(table.status),
+]);
+
+export const knowledgeConflicts = pgTable("knowledge_conflicts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  productId: uuid("product_id").notNull().references(() => products.id),
+  extractionId: uuid("extraction_id").notNull().references(() => sourceExtractions.id, {
+    onDelete: "cascade",
+  }),
+  candidateId: uuid("candidate_id").notNull().references(
+    () => sourceExtractionCandidates.id,
+    { onDelete: "cascade" },
+  ),
+  existingKnowledgeItemId: uuid("existing_knowledge_item_id")
+    .notNull()
+    .references(() => knowledgeItems.id),
+  conflictType: knowledgeConflictTypeEnum("conflict_type").notNull(),
+  resolution: knowledgeConflictResolutionEnum("resolution")
+    .notNull()
+    .default("pending"),
+  summary: text("summary").notNull(),
+  existingSnapshot: jsonb("existing_snapshot")
+    .$type<Record<string, unknown>>()
+    .default({})
+    .notNull(),
+  candidateSnapshot: jsonb("candidate_snapshot")
+    .$type<Record<string, unknown>>()
+    .default({})
+    .notNull(),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}).notNull(),
+  resolvedBy: text("resolved_by").references(() => user.id),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("knowledge_conflicts_product_id_idx").on(table.productId),
+  index("knowledge_conflicts_extraction_id_idx").on(table.extractionId),
+  index("knowledge_conflicts_candidate_id_idx").on(table.candidateId),
+  index("knowledge_conflicts_existing_knowledge_item_id_idx").on(
+    table.existingKnowledgeItemId,
+  ),
+  index("knowledge_conflicts_resolution_idx").on(table.resolution),
 ]);
 
 export const knowledgeRelationships = pgTable("knowledge_relationships", {

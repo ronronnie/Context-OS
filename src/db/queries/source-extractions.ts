@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, or } from "drizzle-orm";
 
 import { extractProductKnowledge } from "@/ai";
 import type { AIProvider } from "@/ai/provider";
@@ -9,11 +9,17 @@ import { getSourceDetail } from "@/db/queries/sources";
 import { assertProductOwnership } from "@/db/queries/products";
 import {
   knowledgeEvents,
+  knowledgeConflicts,
+  knowledgeRelationships,
   knowledgeItems,
   knowledgeSources,
+  featureRelationships,
   sourceExtractionCandidates,
   sourceExtractions,
 } from "@/db/schema/index";
+import {
+  detectKnowledgeConflicts,
+} from "@/lib/product-memory/conflict-detection";
 import { getLifecycleEventType } from "@/lib/product-memory/knowledge-model";
 import {
   candidateEvidenceIncludesSource,
@@ -58,7 +64,7 @@ export async function createSourceExtractionForReview(
     .returning();
 
   if (extraction.candidates.length) {
-    await db.insert(sourceExtractionCandidates).values(
+    const candidates = await db.insert(sourceExtractionCandidates).values(
       extraction.candidates.map((candidate) => ({
         extractionId: run.id,
         productId,
@@ -77,7 +83,33 @@ export async function createSourceExtractionForReview(
         possibleConflicts: candidate.possibleConflicts,
         status: "pending" as const,
       })),
+    ).returning();
+    const existingKnowledge = await getVerifiedKnowledgeForConflictScope(
+      productId,
+      detail.source.moduleId,
+      detail.source.featureId,
+      db,
     );
+
+    const conflicts = candidates.flatMap((candidate) =>
+      detectKnowledgeConflicts(candidate, existingKnowledge).map((conflict) => ({
+        productId,
+        extractionId: run.id,
+        candidateId: candidate.id,
+        existingKnowledgeItemId: conflict.existingKnowledgeItemId,
+        conflictType: conflict.conflictType,
+        summary: conflict.summary,
+        existingSnapshot: existingKnowledgeSnapshot(
+          existingKnowledge.find((item) => item.id === conflict.existingKnowledgeItemId),
+        ),
+        candidateSnapshot: candidateSnapshot(candidate),
+        metadata: conflict.metadata,
+      })),
+    );
+
+    if (conflicts.length) {
+      await db.insert(knowledgeConflicts).values(conflicts);
+    }
   }
 
   return run;
@@ -117,11 +149,17 @@ export async function getSourceExtractionReview(
     .from(sourceExtractionCandidates)
     .where(eq(sourceExtractionCandidates.extractionId, extractionId))
     .orderBy(asc(sourceExtractionCandidates.createdAt));
+  const conflicts = await db
+    .select()
+    .from(knowledgeConflicts)
+    .where(eq(knowledgeConflicts.extractionId, extractionId))
+    .orderBy(asc(knowledgeConflicts.createdAt));
 
   return {
     ...detail,
     extraction,
     candidates,
+    conflicts,
   };
 }
 
@@ -155,6 +193,49 @@ export async function approveExtractionCandidate(
   userId: string,
   db: AppDb = defaultDb,
 ) {
+  return approveExtractionCandidateInternal(
+    productId,
+    sourceId,
+    extractionId,
+    candidateId,
+    edits,
+    userId,
+    db,
+    false,
+  );
+}
+
+async function approveExtractionCandidateAllowingConflict(
+  productId: string,
+  sourceId: string,
+  extractionId: string,
+  candidateId: string,
+  edits: CandidateReviewEdits,
+  userId: string,
+  db: AppDb,
+) {
+  return approveExtractionCandidateInternal(
+    productId,
+    sourceId,
+    extractionId,
+    candidateId,
+    edits,
+    userId,
+    db,
+    true,
+  );
+}
+
+async function approveExtractionCandidateInternal(
+  productId: string,
+  sourceId: string,
+  extractionId: string,
+  candidateId: string,
+  edits: CandidateReviewEdits,
+  userId: string,
+  db: AppDb,
+  allowPendingConflicts: boolean,
+) {
   await assertProductOwnership(productId, userId, db);
 
   if (!candidateEvidenceIncludesSource(edits, sourceId)) {
@@ -171,6 +252,10 @@ export async function approveExtractionCandidate(
 
   if (!candidate) {
     throw new Error("Candidate is not pending or is not accessible.");
+  }
+
+  if (!allowPendingConflicts) {
+    await assertNoPendingConflicts(candidate.id, db);
   }
 
   const [knowledge] = await db
@@ -218,6 +303,90 @@ export async function approveExtractionCandidate(
   return knowledge;
 }
 
+export async function resolveExtractionConflict(
+  productId: string,
+  sourceId: string,
+  extractionId: string,
+  conflictId: string,
+  resolution: "replace_existing" | "keep_both" | "mark_existing_outdated" | "reject_new",
+  edits: CandidateReviewEdits,
+  userId: string,
+  db: AppDb = defaultDb,
+) {
+  await assertProductOwnership(productId, userId, db);
+
+  const [conflict] = await db
+    .select()
+    .from(knowledgeConflicts)
+    .where(
+      and(
+        eq(knowledgeConflicts.id, conflictId),
+        eq(knowledgeConflicts.productId, productId),
+        eq(knowledgeConflicts.extractionId, extractionId),
+        eq(knowledgeConflicts.resolution, "pending"),
+      ),
+    )
+    .limit(1);
+
+  if (!conflict) {
+    throw new Error("Conflict is not pending or is not accessible.");
+  }
+
+  let approvedKnowledgeId: string | null = null;
+  if (resolution === "reject_new") {
+    await rejectExtractionCandidate(
+      productId,
+      sourceId,
+      extractionId,
+      conflict.candidateId,
+      userId,
+      db,
+    );
+  } else {
+    if (resolution === "replace_existing" || resolution === "mark_existing_outdated") {
+      await markKnowledgeOutdated(
+        productId,
+        conflict.existingKnowledgeItemId,
+        userId,
+        db,
+      );
+    }
+
+    const approved = await approveExtractionCandidateAllowingConflict(
+      productId,
+      sourceId,
+      extractionId,
+      conflict.candidateId,
+      edits,
+      userId,
+      db,
+    );
+    approvedKnowledgeId = approved.id;
+
+    await db.insert(knowledgeRelationships).values({
+      fromKnowledgeId: approved.id,
+      toKnowledgeId: conflict.existingKnowledgeItemId,
+      relationshipType:
+        resolution === "keep_both" ? "kept_alongside_conflict" : "supersedes",
+    }).onConflictDoNothing();
+  }
+
+  const now = new Date();
+  await db
+    .update(knowledgeConflicts)
+    .set({
+      resolution,
+      resolvedBy: userId,
+      resolvedAt: now,
+      updatedAt: now,
+      metadata: {
+        ...conflict.metadata,
+        approvedKnowledgeId,
+      },
+    })
+    .where(eq(knowledgeConflicts.id, conflict.id));
+}
+
 export async function approveAllPendingExtractionCandidates(
   productId: string,
   sourceId: string,
@@ -232,9 +401,23 @@ export async function approveAllPendingExtractionCandidates(
     userId,
     db,
   );
+  const pendingConflictRows = await db
+    .select({ candidateId: knowledgeConflicts.candidateId })
+    .from(knowledgeConflicts)
+    .where(
+      and(
+        eq(knowledgeConflicts.extractionId, extractionId),
+        eq(knowledgeConflicts.resolution, "pending"),
+      ),
+    );
+  const blockedCandidateIds = new Set(
+    pendingConflictRows.map((row) => row.candidateId),
+  );
 
   const approved = [];
-  for (const candidate of candidates) {
+  for (const candidate of candidates.filter(
+    (item) => !blockedCandidateIds.has(item.id),
+  )) {
     approved.push(
       await approveExtractionCandidate(
         productId,
@@ -335,6 +518,159 @@ async function getPendingCandidate(
     .limit(1);
 
   return rows[0] ?? null;
+}
+
+async function assertNoPendingConflicts(candidateId: string, db: AppDb) {
+  const rows = await db
+    .select({ id: knowledgeConflicts.id })
+    .from(knowledgeConflicts)
+    .where(
+      and(
+        eq(knowledgeConflicts.candidateId, candidateId),
+        eq(knowledgeConflicts.resolution, "pending"),
+      ),
+    )
+    .limit(1);
+
+  if (rows.length) {
+    throw new Error("Resolve potential conflicts before approving this candidate.");
+  }
+}
+
+async function markKnowledgeOutdated(
+  productId: string,
+  knowledgeItemId: string,
+  userId: string,
+  db: AppDb,
+) {
+  const [existing] = await db
+    .select()
+    .from(knowledgeItems)
+    .where(
+      and(
+        eq(knowledgeItems.id, knowledgeItemId),
+        eq(knowledgeItems.productId, productId),
+      ),
+    )
+    .limit(1);
+
+  if (!existing) {
+    throw new Error("Existing knowledge is not accessible.");
+  }
+
+  if (existing.lifecycleStatus === "outdated") {
+    return existing;
+  }
+
+  const [updated] = await db
+    .update(knowledgeItems)
+    .set({
+      lifecycleStatus: "outdated",
+      validUntil: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(knowledgeItems.id, knowledgeItemId))
+    .returning();
+
+  await db.insert(knowledgeEvents).values({
+    productId,
+    featureId: existing.featureId,
+    knowledgeItemId,
+    eventType: "marked_outdated",
+    fromLifecycleStatus: existing.lifecycleStatus,
+    toLifecycleStatus: "outdated",
+    title: existing.title,
+    note: "Marked outdated during extraction conflict review.",
+    createdBy: userId,
+  });
+
+  return updated;
+}
+
+async function getVerifiedKnowledgeForConflictScope(
+  productId: string,
+  moduleId: string | null,
+  featureId: string | null,
+  db: AppDb,
+) {
+  const scopeConditions = [isNull(knowledgeItems.moduleId)];
+
+  if (moduleId) {
+    scopeConditions.push(eq(knowledgeItems.moduleId, moduleId));
+  }
+
+  if (featureId) {
+    const relationships = await db
+      .select()
+      .from(featureRelationships)
+      .where(
+        or(
+          eq(featureRelationships.fromFeatureId, featureId),
+          eq(featureRelationships.toFeatureId, featureId),
+        ),
+      );
+    const relatedFeatureIds = relationships.map((relationship) =>
+      relationship.fromFeatureId === featureId
+        ? relationship.toFeatureId
+        : relationship.fromFeatureId,
+    );
+
+    scopeConditions.push(eq(knowledgeItems.featureId, featureId));
+    if (relatedFeatureIds.length) {
+      scopeConditions.push(inArray(knowledgeItems.featureId, relatedFeatureIds));
+    }
+  }
+
+  return db
+    .select()
+    .from(knowledgeItems)
+    .where(
+      and(
+        eq(knowledgeItems.productId, productId),
+        eq(knowledgeItems.lifecycleStatus, "verified"),
+        or(...scopeConditions),
+      ),
+    );
+}
+
+function existingKnowledgeSnapshot(
+  existing: typeof knowledgeItems.$inferSelect | undefined,
+) {
+  if (!existing) {
+    return {};
+  }
+
+  return {
+    id: existing.id,
+    title: existing.title,
+    body: existing.body,
+    knowledgeType: existing.knowledgeType,
+    authority: existing.authority,
+    lifecycleStatus: existing.lifecycleStatus,
+    lastVerifiedAt: existing.lastVerifiedAt,
+    validFrom: existing.validFrom,
+    validUntil: existing.validUntil,
+    moduleId: existing.moduleId,
+    featureId: existing.featureId,
+  };
+}
+
+function candidateSnapshot(
+  candidate: typeof sourceExtractionCandidates.$inferSelect,
+) {
+  return {
+    id: candidate.id,
+    title: candidate.title,
+    body: candidate.body,
+    knowledgeType: candidate.knowledgeType,
+    suggestedAuthority: candidate.suggestedAuthority,
+    confidence: candidate.confidence,
+    sourceEvidence: candidate.sourceEvidence,
+    appearsHistorical: candidate.appearsHistorical,
+    possibleConflicts: candidate.possibleConflicts,
+    moduleId: candidate.moduleId,
+    featureId: candidate.featureId,
+  };
 }
 
 async function buildExistingFeatureContext(

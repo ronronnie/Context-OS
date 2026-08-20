@@ -5,6 +5,7 @@ import {
   approveAllExtractionCandidatesAction,
   approveExtractionCandidateAction,
   rejectExtractionCandidateAction,
+  resolveExtractionConflictAction,
 } from "@/app/actions/source-extraction";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
@@ -117,6 +118,9 @@ export default async function SourceExtractionReviewPage({
             review.candidates.map((candidate) => (
               <CandidateReviewCard
                 candidate={candidate}
+                conflicts={review.conflicts.filter(
+                  (conflict) => conflict.candidateId === candidate.id,
+                )}
                 extractionId={extractionId}
                 key={candidate.id}
                 productId={productId}
@@ -137,6 +141,7 @@ export default async function SourceExtractionReviewPage({
 
 function CandidateReviewCard({
   candidate,
+  conflicts,
   productId,
   sourceId,
   extractionId,
@@ -144,6 +149,9 @@ function CandidateReviewCard({
   candidate: NonNullable<
     Awaited<ReturnType<typeof getSourceExtractionReview>>
   >["candidates"][number];
+  conflicts: NonNullable<
+    Awaited<ReturnType<typeof getSourceExtractionReview>>
+  >["conflicts"];
   productId: string;
   sourceId: string;
   extractionId: string;
@@ -163,6 +171,9 @@ function CandidateReviewCard({
     candidate.id,
   );
   const disabled = candidate.status !== "pending";
+  const pendingConflictCount = conflicts.filter(
+    (conflict) => conflict.resolution === "pending",
+  ).length;
 
   return (
     <form action={approve} className="rounded-md border border-[var(--border)] bg-[var(--panel)]">
@@ -279,14 +290,146 @@ function CandidateReviewCard({
       </div>
 
       <div className="flex flex-wrap gap-2 border-t border-[var(--border)] p-4">
-        <Button disabled={disabled} type="submit">
+        <Button disabled={disabled || pendingConflictCount > 0} type="submit">
           Approve
         </Button>
         <Button disabled={disabled} formAction={reject} type="submit" variant="secondary">
           Reject
         </Button>
       </div>
+      {conflicts.length ? (
+        <div className="space-y-3 border-t border-[var(--border)] bg-white p-4">
+          <h3 className="text-sm font-semibold">Potential conflicts</h3>
+          {conflicts.map((conflict) => (
+            <ConflictReview
+              conflict={conflict}
+              disabled={disabled || conflict.resolution !== "pending"}
+              extractionId={extractionId}
+              key={conflict.id}
+              productId={productId}
+              sourceId={sourceId}
+            />
+          ))}
+        </div>
+      ) : null}
+      {pendingConflictCount ? (
+        <p className="border-t border-[var(--border)] bg-[#fef3c7] p-4 text-sm text-[#92400e]">
+          Resolve {pendingConflictCount} potential conflict
+          {pendingConflictCount === 1 ? "" : "s"} before normal approval.
+        </p>
+      ) : null}
     </form>
+  );
+}
+
+function ConflictReview({
+  conflict,
+  productId,
+  sourceId,
+  extractionId,
+  disabled,
+}: {
+  conflict: NonNullable<
+    Awaited<ReturnType<typeof getSourceExtractionReview>>
+  >["conflicts"][number];
+  productId: string;
+  sourceId: string;
+  extractionId: string;
+  disabled: boolean;
+}) {
+  const replaceExisting = resolveExtractionConflictAction.bind(
+    null,
+    productId,
+    sourceId,
+    extractionId,
+    conflict.id,
+    "replace_existing",
+  );
+  const keepBoth = resolveExtractionConflictAction.bind(
+    null,
+    productId,
+    sourceId,
+    extractionId,
+    conflict.id,
+    "keep_both",
+  );
+  const markExistingOutdated = resolveExtractionConflictAction.bind(
+    null,
+    productId,
+    sourceId,
+    extractionId,
+    conflict.id,
+    "mark_existing_outdated",
+  );
+  const rejectNew = resolveExtractionConflictAction.bind(
+    null,
+    productId,
+    sourceId,
+    extractionId,
+    conflict.id,
+    "reject_new",
+  );
+  const existing = conflict.existingSnapshot;
+  const candidate = conflict.candidateSnapshot;
+
+  return (
+    <section className="rounded-md border border-[#fde68a] bg-[#fffbeb] p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-md border border-[#fde68a] bg-[#fef3c7] px-2 py-1 text-xs font-medium text-[#92400e]">
+          {String(conflict.conflictType).replaceAll("_", " ")}
+        </span>
+        <span className="text-xs text-[var(--muted)]">
+          Resolution: {String(conflict.resolution).replaceAll("_", " ")}
+        </span>
+      </div>
+      <p className="mt-2 text-sm leading-6 text-[var(--muted-strong)]">
+        {conflict.summary}
+      </p>
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        <SnapshotPanel label="Existing" snapshot={existing} />
+        <SnapshotPanel label="New" snapshot={candidate} />
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button disabled={disabled} formAction={replaceExisting} type="submit" variant="secondary">
+          Replace Existing
+        </Button>
+        <Button disabled={disabled} formAction={keepBoth} type="submit" variant="secondary">
+          Keep Both
+        </Button>
+        <Button disabled={disabled} formAction={markExistingOutdated} type="submit" variant="secondary">
+          Mark Existing Outdated
+        </Button>
+        <Button disabled={disabled} formAction={rejectNew} type="submit" variant="secondary">
+          Reject New
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function SnapshotPanel({
+  label,
+  snapshot,
+}: {
+  label: string;
+  snapshot: Record<string, unknown>;
+}) {
+  return (
+    <div className="rounded-md border border-[var(--border)] bg-white p-3">
+      <h4 className="text-xs font-semibold uppercase text-[var(--muted)]">
+        {label}
+      </h4>
+      <h5 className="mt-2 text-sm font-medium">{String(snapshot.title ?? "Untitled")}</h5>
+      <p className="mt-1 line-clamp-3 text-sm leading-6 text-[var(--muted)]">
+        {String(snapshot.body ?? "No body captured.")}
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2 text-xs text-[var(--muted)]">
+        {snapshot.authority ? <span>{String(snapshot.authority)} authority</span> : null}
+        {snapshot.suggestedAuthority ? <span>{String(snapshot.suggestedAuthority)} authority</span> : null}
+        {snapshot.lastVerifiedAt ? <span>Verified {formatDate(snapshot.lastVerifiedAt)}</span> : null}
+        {snapshot.confidence ? <span>{String(snapshot.confidence)}% confidence</span> : null}
+      </div>
+    </div>
   );
 }
 
@@ -343,4 +486,13 @@ function SummaryRow({ label, value }: { label: string; value: number }) {
       <dd className="font-semibold">{value}</dd>
     </div>
   );
+}
+
+function formatDate(value: unknown) {
+  if (!value) {
+    return "unknown";
+  }
+
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime()) ? "unknown" : date.toLocaleDateString();
 }

@@ -8,6 +8,7 @@ import {
   approveExtractionCandidate,
   createSourceExtractionForReview,
   rejectExtractionCandidate,
+  resolveExtractionConflict,
 } from "@/db/queries";
 import { requireUser } from "@/lib/auth/session";
 import { parseCandidateReviewFormData } from "@/lib/source-ingestion/review-forms";
@@ -86,4 +87,29 @@ export async function rejectExtractionCandidateAction(
   );
 
   revalidatePath(sourceExtractionRoute(productId, sourceId, extractionId));
+}
+
+export async function resolveExtractionConflictAction(
+  productId: string,
+  sourceId: string,
+  extractionId: string,
+  conflictId: string,
+  resolution: "replace_existing" | "keep_both" | "mark_existing_outdated" | "reject_new",
+  formData: FormData,
+) {
+  const user = await requireUser();
+  const edits = parseCandidateReviewFormData(formData);
+
+  await resolveExtractionConflict(
+    productId,
+    sourceId,
+    extractionId,
+    conflictId,
+    resolution,
+    edits,
+    user.id,
+  );
+
+  revalidatePath(sourceExtractionRoute(productId, sourceId, extractionId));
+  revalidatePath(sourceRoute(productId, sourceId));
 }

@@ -7,6 +7,7 @@ import {
   featureRelationships,
   features,
   knowledgeItems,
+  knowledgeConflicts,
   knowledgeEvents,
   knowledgeRelationships,
   knowledgeSources,
@@ -93,6 +94,7 @@ export const knowledgeItemRelations = relations(knowledgeItems, ({ one, many }) 
   incomingRelationships: many(knowledgeRelationships, {
     relationName: "toKnowledge",
   }),
+  conflictsAsExisting: many(knowledgeConflicts),
 }));
 
 export const knowledgeEventRelations = relations(knowledgeEvents, ({ one }) => ({
@@ -150,11 +152,12 @@ export const sourceExtractionRelations = relations(sourceExtractions, ({ one, ma
     references: [user.id],
   }),
   candidates: many(sourceExtractionCandidates),
+  conflicts: many(knowledgeConflicts),
 }));
 
 export const sourceExtractionCandidateRelations = relations(
   sourceExtractionCandidates,
-  ({ one }) => ({
+  ({ one, many }) => ({
     extraction: one(sourceExtractions, {
       fields: [sourceExtractionCandidates.extractionId],
       references: [sourceExtractions.id],
@@ -179,8 +182,32 @@ export const sourceExtractionCandidateRelations = relations(
       fields: [sourceExtractionCandidates.approvedKnowledgeItemId],
       references: [knowledgeItems.id],
     }),
+    conflicts: many(knowledgeConflicts),
   }),
 );
+
+export const knowledgeConflictRelations = relations(knowledgeConflicts, ({ one }) => ({
+  product: one(products, {
+    fields: [knowledgeConflicts.productId],
+    references: [products.id],
+  }),
+  extraction: one(sourceExtractions, {
+    fields: [knowledgeConflicts.extractionId],
+    references: [sourceExtractions.id],
+  }),
+  candidate: one(sourceExtractionCandidates, {
+    fields: [knowledgeConflicts.candidateId],
+    references: [sourceExtractionCandidates.id],
+  }),
+  existingKnowledgeItem: one(knowledgeItems, {
+    fields: [knowledgeConflicts.existingKnowledgeItemId],
+    references: [knowledgeItems.id],
+  }),
+  resolver: one(user, {
+    fields: [knowledgeConflicts.resolvedBy],
+    references: [user.id],
+  }),
+}));
 
 export const knowledgeSourceRelations = relations(knowledgeSources, ({ one }) => ({
   knowledgeItem: one(knowledgeItems, {
