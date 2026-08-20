@@ -42,7 +42,9 @@ AI_PROVIDER="openai-compatible"
 AI_API_KEY=""
 AI_BASE_URL="https://api.openai.com/v1"
 AI_TEXT_MODEL="gpt-4.1-mini"
-AI_EXTRACTION_MODEL="gpt-4.1-mini"
+AI_STRUCTURED_MODEL="gpt-4.1-mini"
+AI_TIMEOUT_MS="30000"
+AI_MAX_RETRIES="1"
 AI_EMBEDDING_MODEL="text-embedding-3-small"
 AI_EMBEDDING_DIMENSIONS="1536"
 ```
@@ -111,6 +113,7 @@ Do not duplicate authentication data in a separate profile model unless Context 
 - Feature Memory management supports manual knowledge creation, editing, source association, lifecycle transitions, detail views, and visible timeline events.
 - Knowledge detail pages show full body, source evidence, relationships, lifecycle history, valid dates, and created/updated metadata.
 - Manual Source Ingestion supports product/module/feature attachment, source type validation, metadata JSON, raw content storage, source detail pages, connected knowledge display, and an extraction handoff shape for the later AI extraction prompt.
+- AI provider abstraction supports server-side text, structured output, and embedding operations with timeout, retry, error handling, malformed response handling, and a Product Memory extraction operation that returns proposed candidates only.
 
 ## Product Architecture Workflow
 
@@ -148,6 +151,14 @@ Open `/sources` after signing in to manually add fictional source evidence. A so
 Supported source types are `note`, `prd`, `jira_ticket`, `figma_link`, `figma_notes`, `research_note`, `release_note`, `slack_summary`, `code_note`, `design_system_doc`, and `meeting_note`.
 
 Each source detail page shows metadata, raw content, graph attachment, connected knowledge items, and an extraction status placeholder. Sources remain evidence records; trusted Product Memory still requires structured knowledge linked to sources and human verification.
+
+## AI Provider Architecture
+
+AI calls live under `src/ai` and are server-side only. The first provider is `openai-compatible`, configured by environment variables. UI components and Product Memory database services should call domain operations such as `extractProductKnowledge(source, existingFeatureContext)` rather than calling a model provider directly.
+
+The AI layer is split into provider config, provider implementation, prompts, schemas, and operations. Structured outputs are validated with Zod. Malformed JSON, schema mismatches, provider failures, and source-id mismatches fail before anything can be written to Product Memory.
+
+To add another provider later, add a provider implementation that satisfies `AIProvider`, extend the `AI_PROVIDER` config parser, and keep existing domain operations unchanged.
 
 ## Commands
 

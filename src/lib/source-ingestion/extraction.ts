@@ -52,6 +52,6 @@ export function getSourceExtractionStatus(): SourceExtractionStatus {
     status: "not_started",
     label: "Extraction not started",
     description:
-      "Prompt 7 will call the source extraction service from this source record.",
+      "The server-side extraction service can prepare candidates from this source; the review UI is intentionally not wired yet.",
   };
 }
