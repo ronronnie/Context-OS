@@ -155,7 +155,7 @@ export function getConflictResolutionEffect(resolution: ConflictResolution) {
     keep_both: {
       approveNew: true,
       markExistingOutdated: false,
-      relationshipType: "kept_alongside_conflict",
+      relationshipType: "related_to",
       preservesExistingHistory: true,
     },
     mark_existing_outdated: {

@@ -111,7 +111,7 @@ describe("Product Memory conflict detection", () => {
     expect(getConflictResolutionEffect("keep_both")).toMatchObject({
       approveNew: true,
       markExistingOutdated: false,
-      relationshipType: "kept_alongside_conflict",
+      relationshipType: "related_to",
     });
     expect(getConflictResolutionEffect("reject_new")).toMatchObject({
       approveNew: false,

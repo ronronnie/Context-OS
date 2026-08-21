@@ -15,7 +15,9 @@ import {
 } from "@/db/schema/index";
 import {
   seedFeatures,
+  seedFeatureRelationships,
   seedKnowledge,
+  seedKnowledgeRelationships,
   seedModules,
   seedProduct,
   seedSources,
@@ -188,28 +190,44 @@ async function main() {
     }
   }
 
-  await createRelationship(
-    knowledgeByTitle,
-    "BulkActionBar exists in Application Review",
-    "Progress Report Review reuses Application Review patterns",
-    "informs",
-  );
-  await createRelationship(
-    knowledgeByTitle,
-    "Permanent bulk toolbar was rejected",
-    "Bulk actions require eligible selection",
-    "constrains",
-  );
-
-  const bulkReviewFeatureId = featureByKey.get("bulk-review");
-  const progressReviewFeatureId = featureByKey.get("review-progress-report");
-  if (bulkReviewFeatureId && progressReviewFeatureId) {
-    await db.insert(featureRelationships).values({
-      fromFeatureId: progressReviewFeatureId,
-      toFeatureId: bulkReviewFeatureId,
-      relationshipType: "reuses_pattern_from",
-    }).onConflictDoNothing();
+  for (const relationshipSeed of seedKnowledgeRelationships) {
+    await createKnowledgeRelationship(
+      product.id,
+      knowledgeByTitle,
+      relationshipSeed.fromTitle,
+      relationshipSeed.toTitle,
+      relationshipSeed.relationshipType,
+      relationshipSeed.reason,
+    );
   }
+
+  for (const relationshipSeed of seedFeatureRelationships) {
+    const fromFeatureId = featureByKey.get(relationshipSeed.fromFeatureKey);
+    const toFeatureId = featureByKey.get(relationshipSeed.toFeatureKey);
+    if (!fromFeatureId || !toFeatureId) continue;
+
+    await db.insert(featureRelationships).values({
+      productId: product.id,
+      fromFeatureId,
+      toFeatureId,
+      relationshipType: relationshipSeed.relationshipType,
+      reason: relationshipSeed.reason,
+      createdBy: seedUser.id,
+    }).onConflictDoUpdate({
+      target: [
+        featureRelationships.fromFeatureId,
+        featureRelationships.toFeatureId,
+        featureRelationships.relationshipType,
+      ],
+      set: {
+        reason: relationshipSeed.reason,
+        createdBy: seedUser.id,
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  const progressReviewFeatureId = featureByKey.get("review-progress-report");
 
   const [task] = await db
     .insert(tasks)
@@ -264,21 +282,37 @@ async function main() {
   console.log(`Seeded ${seedProduct.name} for ${seedUser.email}`);
 }
 
-async function createRelationship(
+async function createKnowledgeRelationship(
+  productId: string,
   knowledgeByTitle: Map<string, string>,
   fromTitle: string,
   toTitle: string,
   relationshipType: string,
+  reason: string,
 ) {
   const fromKnowledgeId = knowledgeByTitle.get(fromTitle);
   const toKnowledgeId = knowledgeByTitle.get(toTitle);
   if (!fromKnowledgeId || !toKnowledgeId) return;
 
   await db.insert(knowledgeRelationships).values({
+    productId,
     fromKnowledgeId,
     toKnowledgeId,
     relationshipType,
-  }).onConflictDoNothing();
+    reason,
+    createdBy: seedUser.id,
+  }).onConflictDoUpdate({
+    target: [
+      knowledgeRelationships.fromKnowledgeId,
+      knowledgeRelationships.toKnowledgeId,
+      knowledgeRelationships.relationshipType,
+    ],
+    set: {
+      reason,
+      createdBy: seedUser.id,
+      updatedAt: new Date(),
+    },
+  });
 }
 
 main().catch((error) => {

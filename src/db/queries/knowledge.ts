@@ -286,11 +286,21 @@ export async function getKnowledgeItemDetail(
   const outgoingRelationships = await db
     .select()
     .from(knowledgeRelationships)
-    .where(eq(knowledgeRelationships.fromKnowledgeId, knowledgeItemId));
+    .where(
+      and(
+        eq(knowledgeRelationships.productId, productId),
+        eq(knowledgeRelationships.fromKnowledgeId, knowledgeItemId),
+      ),
+    );
   const incomingRelationships = await db
     .select()
     .from(knowledgeRelationships)
-    .where(eq(knowledgeRelationships.toKnowledgeId, knowledgeItemId));
+    .where(
+      and(
+        eq(knowledgeRelationships.productId, productId),
+        eq(knowledgeRelationships.toKnowledgeId, knowledgeItemId),
+      ),
+    );
   const relationshipIds = [
     ...outgoingRelationships.map((item) => item.toKnowledgeId),
     ...incomingRelationships.map((item) => item.fromKnowledgeId),
@@ -306,12 +316,18 @@ export async function getKnowledgeItemDetail(
     .from(knowledgeEvents)
     .where(eq(knowledgeEvents.knowledgeItemId, knowledgeItemId))
     .orderBy(desc(knowledgeEvents.createdAt));
+  const productKnowledge = await db
+    .select()
+    .from(knowledgeItems)
+    .where(eq(knowledgeItems.productId, productId))
+    .orderBy(desc(knowledgeItems.updatedAt));
 
   return {
     knowledge,
     sources: evidence.map((row) => row.source),
     relationships: [...outgoingRelationships, ...incomingRelationships],
     relatedKnowledge,
+    productKnowledge,
     history,
   };
 }

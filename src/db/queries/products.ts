@@ -133,7 +133,7 @@ export async function assertProductOwnership(
   userId: string,
   db: AppDb = defaultDb,
 ) {
-  const product = await getProduct(productId, userId, db);
+  const product = await getProduct(productId, requireUserId(userId), db);
 
   if (!product) {
     throw new Error("Product not found or not accessible.");

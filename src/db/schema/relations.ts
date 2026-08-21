@@ -36,6 +36,8 @@ export const productRelations = relations(products, ({ one, many }) => ({
   knowledgeItems: many(knowledgeItems),
   sources: many(sources),
   sourceExtractions: many(sourceExtractions),
+  featureRelationships: many(featureRelationships),
+  knowledgeRelationships: many(knowledgeRelationships),
   tasks: many(tasks),
   contextPacks: many(contextPacks),
 }));
@@ -219,6 +221,51 @@ export const knowledgeSourceRelations = relations(knowledgeSources, ({ one }) =>
     references: [sources.id],
   }),
 }));
+
+export const featureRelationshipRelations = relations(featureRelationships, ({ one }) => ({
+  product: one(products, {
+    fields: [featureRelationships.productId],
+    references: [products.id],
+  }),
+  fromFeature: one(features, {
+    fields: [featureRelationships.fromFeatureId],
+    references: [features.id],
+    relationName: "fromFeature",
+  }),
+  toFeature: one(features, {
+    fields: [featureRelationships.toFeatureId],
+    references: [features.id],
+    relationName: "toFeature",
+  }),
+  creator: one(user, {
+    fields: [featureRelationships.createdBy],
+    references: [user.id],
+  }),
+}));
+
+export const knowledgeRelationshipRelations = relations(
+  knowledgeRelationships,
+  ({ one }) => ({
+    product: one(products, {
+      fields: [knowledgeRelationships.productId],
+      references: [products.id],
+    }),
+    fromKnowledge: one(knowledgeItems, {
+      fields: [knowledgeRelationships.fromKnowledgeId],
+      references: [knowledgeItems.id],
+      relationName: "fromKnowledge",
+    }),
+    toKnowledge: one(knowledgeItems, {
+      fields: [knowledgeRelationships.toKnowledgeId],
+      references: [knowledgeItems.id],
+      relationName: "toKnowledge",
+    }),
+    creator: one(user, {
+      fields: [knowledgeRelationships.createdBy],
+      references: [user.id],
+    }),
+  }),
+);
 
 export const taskRelations = relations(tasks, ({ one, many }) => ({
   product: one(products, {

@@ -364,10 +364,12 @@ export async function resolveExtractionConflict(
     approvedKnowledgeId = approved.id;
 
     await db.insert(knowledgeRelationships).values({
+      productId,
       fromKnowledgeId: approved.id,
       toKnowledgeId: conflict.existingKnowledgeItemId,
-      relationshipType:
-        resolution === "keep_both" ? "kept_alongside_conflict" : "supersedes",
+      relationshipType: resolution === "keep_both" ? "related_to" : "supersedes",
+      reason: `Recorded during conflict review: ${conflict.summary}`,
+      createdBy: userId,
     }).onConflictDoNothing();
   }
 

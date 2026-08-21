@@ -178,9 +178,12 @@ export async function getFeatureWorkspace(
     .select()
     .from(featureRelationships)
     .where(
-      or(
-        eq(featureRelationships.fromFeatureId, featureId),
-        eq(featureRelationships.toFeatureId, featureId),
+      and(
+        eq(featureRelationships.productId, productId),
+        or(
+          eq(featureRelationships.fromFeatureId, featureId),
+          eq(featureRelationships.toFeatureId, featureId),
+        ),
       ),
     );
   const relatedFeatureIds = relationships.map((relationship) =>
@@ -224,6 +227,7 @@ export async function getFeatureWorkspace(
     })),
     sources: featureSources.map((row) => row.source),
     productSources,
+    productFeatures,
     relatedFeatures,
     relationships,
     tasks: featureTasks,

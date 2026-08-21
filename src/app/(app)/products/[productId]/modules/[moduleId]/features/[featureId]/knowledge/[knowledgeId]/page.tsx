@@ -2,11 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import {
+  createKnowledgeRelationshipAction,
+  removeKnowledgeRelationshipAction,
+} from "@/app/actions/product-graph";
+import {
   transitionKnowledgeLifecycleAction,
   updateFeatureKnowledgeAction,
 } from "@/app/actions/feature-memory";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { RelationshipChip } from "@/components/relationship-chip";
 import { SectionHeader } from "@/components/section-header";
 import { SourceChip } from "@/components/source-chip";
 import { StatusBadge } from "@/components/status-badge";
@@ -22,6 +27,10 @@ import {
   knowledgeTypeOptions,
   lifecycleStatusOptions,
 } from "@/lib/product-memory/knowledge-model";
+import {
+  formatRelationshipType,
+  knowledgeRelationshipOptions,
+} from "@/lib/product-graph/relationships";
 import { featureRoute, moduleRoute, productRoute } from "@/lib/routes";
 
 export default async function KnowledgeDetailPage({
@@ -63,7 +72,20 @@ export default async function KnowledgeDetailPage({
     featureId,
     knowledgeId,
   );
+  const createRelationship = createKnowledgeRelationshipAction.bind(
+    null,
+    productId,
+    moduleId,
+    featureId,
+    knowledgeId,
+  );
   const selectedSourceIds = detail.sources.map((source) => source.id);
+  const relationshipKnowledgeById = new Map(
+    detail.productKnowledge.map((item) => [item.id, item]),
+  );
+  const relationshipCandidates = detail.productKnowledge.filter(
+    (item) => item.id !== knowledgeId,
+  );
 
   return (
     <div className="space-y-6">
@@ -166,6 +188,55 @@ export default async function KnowledgeDetailPage({
               <Button type="submit">Save knowledge</Button>
             </div>
           </form>
+
+          <form
+            action={createRelationship}
+            className="rounded-md border border-[var(--border)] bg-[var(--panel)]"
+          >
+            <SectionHeader
+              title="Add knowledge relationship"
+              description="Preserve explicit links between rules, decisions, constraints, evidence, and contradictions."
+            />
+            <div className="space-y-4 p-4">
+              <label className="block">
+                <span className="text-sm font-medium">Related memory</span>
+                <select
+                  className="mt-1 h-10 w-full rounded-md border border-[var(--border)] bg-white px-3 text-sm outline-none focus:ring-4 focus:ring-[#99f6e4]"
+                  name="toKnowledgeId"
+                  required
+                >
+                  <option value="">Choose knowledge</option>
+                  {relationshipCandidates.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium">Relationship</span>
+                <select
+                  className="mt-1 h-10 w-full rounded-md border border-[var(--border)] bg-white px-3 text-sm outline-none focus:ring-4 focus:ring-[#99f6e4]"
+                  name="relationshipType"
+                >
+                  {knowledgeRelationshipOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium">Reason</span>
+                <textarea
+                  className="mt-1 min-h-20 w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:ring-4 focus:ring-[#99f6e4]"
+                  name="reason"
+                  placeholder="Explain why this relationship matters."
+                />
+              </label>
+              <Button type="submit">Add relationship</Button>
+            </div>
+          </form>
         </div>
 
         <div className="space-y-6">
@@ -231,17 +302,35 @@ export default async function KnowledgeDetailPage({
                         : relationship.fromKnowledgeId;
                     const related = detail.relatedKnowledge.find(
                       (item) => item.id === relatedId,
+                    ) ?? relationshipKnowledgeById.get(relatedId);
+                    const removeRelationship = removeKnowledgeRelationshipAction.bind(
+                      null,
+                      productId,
+                      moduleId,
+                      featureId,
+                      knowledgeId,
+                      relationship.id,
                     );
                     return (
                       <div
                         className="rounded-md border border-[var(--border)] bg-white p-3"
                         key={relationship.id}
                       >
-                        <span className="text-xs text-[var(--muted)]">
-                          {relationship.relationshipType}
-                        </span>
-                        <p className="mt-1 text-sm font-medium">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <RelationshipChip
+                            label={formatRelationshipType(relationship.relationshipType)}
+                          />
+                          <form action={removeRelationship}>
+                            <Button type="submit" variant="secondary">
+                              Remove
+                            </Button>
+                          </form>
+                        </div>
+                        <p className="mt-2 text-sm font-medium">
                           {related?.title ?? relatedId}
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                          {relationship.reason || "No reason recorded."}
                         </p>
                       </div>
                     );

@@ -50,6 +50,13 @@
       "when": 1787244912297,
       "tag": "0006_fantastic_rogue",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787245854681,
+      "tag": "0007_lumpy_runaways",
+      "breakpoints": true
     }
   ]
 }

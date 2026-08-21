@@ -246,3 +246,47 @@ export const seedKnowledge = [
     ],
   },
 ] as const;
+
+export const seedFeatureRelationships = [
+  {
+    fromFeatureKey: "review-progress-report",
+    toFeatureKey: "bulk-review",
+    relationshipType: "reuses_pattern_from",
+    reason:
+      "Progress Report Review reuses the Application Review bulk action pattern.",
+  },
+] as const;
+
+export const seedKnowledgeRelationships = [
+  {
+    fromTitle: "BulkActionBar exists in Application Review",
+    toTitle: "Bulk actions require eligible selection",
+    relationshipType: "supports",
+    reason: "BulkActionBar supports bulk review workflows after selection starts.",
+  },
+  {
+    fromTitle: "ConfirmationModal precedes irreversible workflow changes",
+    toTitle: "Approval permissions are role-limited",
+    relationshipType: "constrains",
+    reason: "ConfirmationModal constrains approval interactions before committing changes.",
+  },
+  {
+    fromTitle: "Permanent bulk toolbar was rejected",
+    toTitle: "Bulk actions require eligible selection",
+    relationshipType: "contradicts",
+    reason:
+      "The rejected persistent toolbar contradicts proposals to keep bulk controls always visible.",
+  },
+  {
+    fromTitle: "Bulk mutation limit is 100 records",
+    toTitle: "Progress Report Review reuses Application Review patterns",
+    relationshipType: "constrains",
+    reason: "The 100-record API limit constrains any bulk approval design.",
+  },
+  {
+    fromTitle: "Progress Report Review reuses Application Review patterns",
+    toTitle: "BulkActionBar exists in Application Review",
+    relationshipType: "explains",
+    reason: "The reuse decision explains why BulkActionBar is relevant.",
+  },
+] as const;

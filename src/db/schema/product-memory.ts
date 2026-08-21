@@ -310,16 +310,25 @@ export const knowledgeConflicts = pgTable("knowledge_conflicts", {
 
 export const knowledgeRelationships = pgTable("knowledge_relationships", {
   id: uuid("id").defaultRandom().primaryKey(),
-  fromKnowledgeId: uuid("from_knowledge_id").notNull().references(() => knowledgeItems.id),
-  toKnowledgeId: uuid("to_knowledge_id").notNull().references(() => knowledgeItems.id),
+  productId: uuid("product_id").notNull().references(() => products.id),
+  fromKnowledgeId: uuid("from_knowledge_id").notNull().references(() => knowledgeItems.id, {
+    onDelete: "cascade",
+  }),
+  toKnowledgeId: uuid("to_knowledge_id").notNull().references(() => knowledgeItems.id, {
+    onDelete: "cascade",
+  }),
   relationshipType: text("relationship_type").notNull(),
+  reason: text("reason").notNull().default(""),
+  createdBy: text("created_by").references(() => user.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   uniqueIndex("knowledge_relationships_unique").on(
     table.fromKnowledgeId,
     table.toKnowledgeId,
     table.relationshipType,
   ),
+  index("knowledge_relationships_product_id_idx").on(table.productId),
   index("knowledge_relationships_from_idx").on(table.fromKnowledgeId),
   index("knowledge_relationships_to_idx").on(table.toKnowledgeId),
 ]);
@@ -344,16 +353,25 @@ export const knowledgeEvents = pgTable("knowledge_events", {
 
 export const featureRelationships = pgTable("feature_relationships", {
   id: uuid("id").defaultRandom().primaryKey(),
-  fromFeatureId: uuid("from_feature_id").notNull().references(() => features.id),
-  toFeatureId: uuid("to_feature_id").notNull().references(() => features.id),
+  productId: uuid("product_id").notNull().references(() => products.id),
+  fromFeatureId: uuid("from_feature_id").notNull().references(() => features.id, {
+    onDelete: "cascade",
+  }),
+  toFeatureId: uuid("to_feature_id").notNull().references(() => features.id, {
+    onDelete: "cascade",
+  }),
   relationshipType: text("relationship_type").notNull(),
+  reason: text("reason").notNull().default(""),
+  createdBy: text("created_by").references(() => user.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   uniqueIndex("feature_relationships_unique").on(
     table.fromFeatureId,
     table.toFeatureId,
     table.relationshipType,
   ),
+  index("feature_relationships_product_id_idx").on(table.productId),
   index("feature_relationships_from_idx").on(table.fromFeatureId),
   index("feature_relationships_to_idx").on(table.toFeatureId),
 ]);
@@ -405,5 +423,7 @@ export type Feature = typeof features.$inferSelect;
 export type KnowledgeItem = typeof knowledgeItems.$inferSelect;
 export type KnowledgeEvent = typeof knowledgeEvents.$inferSelect;
 export type Source = typeof sources.$inferSelect;
+export type FeatureRelationship = typeof featureRelationships.$inferSelect;
+export type KnowledgeRelationship = typeof knowledgeRelationships.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type ContextPack = typeof contextPacks.$inferSelect;

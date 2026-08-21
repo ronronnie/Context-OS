@@ -107,13 +107,15 @@ Do not duplicate authentication data in a separate profile model unless Context 
 - Better Auth route, client helpers, and protected app layout are in place.
 - Authorized query/service functions exist for products, modules, features, knowledge, tasks, and Context Packs.
 - Fictional seed data exists for Nextzen Demo, Progress Reporting, Application Review, source evidence, interconnected knowledge, relationships, and an example Context Pack.
-- Tests cover auth guard behavior, ownership filter construction, and seed data consistency.
+- Tests cover auth guard behavior, ownership filter construction, seed data consistency, extraction review, conflict detection, and graph relationship parsing.
 - Product Architecture UI is implemented for Product -> Module -> Feature management.
 - Product pages support create/edit, summary counts, modules, recent knowledge, and recent Context Packs.
 - Module pages support create/edit/reorder-by-position and feature lists.
 - Feature pages support edit/reorder/status changes and act as the feature-level Product Memory workspace.
 - Feature Memory management supports manual knowledge creation, editing, source association, lifecycle transitions, detail views, and visible timeline events.
-- Knowledge detail pages show full body, source evidence, relationships, lifecycle history, valid dates, and created/updated metadata.
+- Product Graph services support feature neighborhoods, knowledge neighborhoods, product graph summaries, manual feature/knowledge relationship creation, and relationship removal with product ownership checks.
+- Product, feature, and knowledge detail pages include structured graph views for related features, components, decisions, constraints, and knowledge relationships.
+- Knowledge detail pages show full body, source evidence, editable relationships, lifecycle history, valid dates, and created/updated metadata.
 - Manual Source Ingestion supports product/module/feature attachment, source type validation, metadata JSON, raw content storage, source detail pages, connected knowledge display, and an extraction handoff shape for the later AI extraction prompt.
 - AI provider abstraction supports server-side text, structured output, and embedding operations with timeout, retry, error handling, malformed response handling, and a Product Memory extraction operation that returns proposed candidates only.
 - AI Knowledge Extraction can run from a raw Source, persist atomic candidates for review, and only write approved candidates into verified Product Memory with source evidence attached.
@@ -127,7 +129,7 @@ After signing in:
 2. Create a product or open an existing product.
 3. On the product detail page, edit product metadata and create ordered modules.
 4. Open a module to edit module metadata and create ordered features.
-5. Open a feature to manage its overview, status, related sources, related features, grouped knowledge, timeline placeholder, tasks, and Context Packs.
+5. Open a feature to manage its overview, status, related sources, related features, Product Graph, grouped knowledge, timeline placeholder, tasks, and Context Packs.
 
 Feature statuses are:
 
@@ -176,6 +178,18 @@ The review screen shows conflict type, evidence, authority, verification dates, 
 - `Reject New`: reject the candidate without writing it to Product Memory.
 
 Context OS never deletes old Product Memory during conflict resolution. Outdated historical memory remains queryable with lifecycle metadata.
+
+## Product Graph Workflow
+
+Context OS models product relationships as explicit rows, not document blobs. Feature relationships are stored in `feature_relationships`; knowledge relationships are stored in `knowledge_relationships`. Both are product-scoped, auditable, and include a human-readable reason.
+
+Supported feature relationship types are `depends_on`, `similar_to`, `reuses_pattern_from`, `blocks`, `replaces`, `impacts`, and `shares_component`.
+
+Supported knowledge relationship types are `supports`, `contradicts`, `supersedes`, `duplicates`, `explains`, `constrains`, `evidence_for`, and `related_to`.
+
+The product detail page shows the MVP Product Graph summary. Feature detail pages show related features plus applicable constraints, decisions, rejected approaches, and components. Knowledge detail pages allow users to add or remove relationships between memory items while preserving source-backed history.
+
+The fictional Nextzen Demo seed includes graph edges for Progress Report Review reusing Application Review bulk action patterns, `BulkActionBar`, `ConfirmationModal`, the rejected persistent toolbar, and the 100-record API limit.
 
 ## AI Provider Architecture
 

@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import {
+  createFeatureRelationshipAction,
+  removeFeatureRelationshipAction,
+} from "@/app/actions/product-graph";
 import { updateFeatureAction } from "@/app/actions/product-architecture";
 import { createFeatureKnowledgeAction } from "@/app/actions/feature-memory";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { RelationshipChip } from "@/components/relationship-chip";
 import { SectionHeader } from "@/components/section-header";
 import { SourceChip } from "@/components/source-chip";
 import { StatusBadge } from "@/components/status-badge";
@@ -13,10 +18,17 @@ import { getFeatureWorkspace } from "@/db/queries";
 import { requireUser } from "@/lib/auth/session";
 import {
   authorityOptions,
+  getKnowledgeTypeLabel,
   groupKnowledgeItemsByType,
   knowledgeTypeOptions,
   lifecycleStatusOptions,
+  type KnowledgeType,
 } from "@/lib/product-memory/knowledge-model";
+import {
+  featureRelationshipOptions,
+  formatRelationshipType,
+  getGraphBucketForKnowledgeType,
+} from "@/lib/product-graph/relationships";
 import {
   knowledgeRoute,
   moduleRoute,
@@ -49,7 +61,20 @@ export default async function FeatureDetailPage({
     moduleId,
     featureId,
   );
+  const createRelationship = createFeatureRelationshipAction.bind(
+    null,
+    productId,
+    moduleId,
+    featureId,
+  );
   const knowledgeByType = groupKnowledgeItemsByType(workspace.knowledge);
+  const relationshipFeatureById = new Map(
+    workspace.productFeatures.map((feature) => [feature.id, feature]),
+  );
+  const relationshipCandidates = workspace.productFeatures.filter(
+    (feature) => feature.id !== featureId,
+  );
+  const graphBuckets = groupGraphBuckets(workspace.knowledge);
 
   return (
     <div className="space-y-6">
@@ -164,9 +189,107 @@ export default async function FeatureDetailPage({
               />
             )}
           </SidePanel>
+
+          <form
+            action={createRelationship}
+            className="rounded-md border border-[var(--border)] bg-[var(--panel)]"
+          >
+            <SectionHeader
+              title="Add feature relationship"
+              description="Map how this feature depends on, reuses, impacts, or blocks another feature."
+            />
+            <div className="space-y-4 p-4">
+              <label className="block">
+                <span className="text-sm font-medium">Related feature</span>
+                <select
+                  className="mt-1 h-10 w-full rounded-md border border-[var(--border)] bg-white px-3 text-sm outline-none focus:ring-4 focus:ring-[#99f6e4]"
+                  name="toFeatureId"
+                  required
+                >
+                  <option value="">Choose a feature</option>
+                  {relationshipCandidates.map((feature) => (
+                    <option key={feature.id} value={feature.id}>
+                      {feature.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium">Relationship</span>
+                <select
+                  className="mt-1 h-10 w-full rounded-md border border-[var(--border)] bg-white px-3 text-sm outline-none focus:ring-4 focus:ring-[#99f6e4]"
+                  name="relationshipType"
+                >
+                  {featureRelationshipOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium">Reason</span>
+                <textarea
+                  className="mt-1 min-h-20 w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:ring-4 focus:ring-[#99f6e4]"
+                  name="reason"
+                  placeholder="Explain why this relationship matters."
+                />
+              </label>
+              <Button type="submit">Add relationship</Button>
+            </div>
+          </form>
         </div>
 
         <div className="space-y-6">
+          <section className="rounded-md border border-[var(--border)] bg-[var(--panel)]">
+            <SectionHeader
+              title="Product Graph"
+              description="Structured view of what this feature touches, reuses, constrains, and may impact."
+            />
+            <div className="grid gap-4 p-4 lg:grid-cols-2">
+              <GraphList
+                empty="No feature relationships yet."
+                items={workspace.relationships.map((relationship) => {
+                  const relatedId =
+                    relationship.fromFeatureId === featureId
+                      ? relationship.toFeatureId
+                      : relationship.fromFeatureId;
+                  const relatedFeature = relationshipFeatureById.get(relatedId);
+
+                  return {
+                    id: relationship.id,
+                    title: relatedFeature?.name ?? relatedId,
+                    eyebrow: formatRelationshipType(relationship.relationshipType),
+                    description: relationship.reason || "No reason recorded.",
+                    action: removeFeatureRelationshipAction.bind(
+                      null,
+                      productId,
+                      moduleId,
+                      featureId,
+                      relationship.id,
+                    ),
+                  };
+                })}
+                title="Related features"
+              />
+              <GraphList
+                empty="No constraints linked to this feature yet."
+                items={graphBuckets.constraints}
+                title="Constraints"
+              />
+              <GraphList
+                empty="No decision memory linked to this feature yet."
+                items={graphBuckets.decisions}
+                title="Decisions and rejected approaches"
+              />
+              <GraphList
+                empty="No component memory linked to this feature yet."
+                items={graphBuckets.components}
+                title="Components and patterns"
+              />
+            </div>
+          </section>
+
           <section className="rounded-md border border-[var(--border)] bg-[var(--panel)]">
             <SectionHeader
               title="Knowledge grouped by type"
@@ -465,6 +588,110 @@ function SidePanel({
       <SectionHeader title={title} />
       <div className="p-4">{children}</div>
     </section>
+  );
+}
+
+function GraphList({
+  title,
+  items,
+  empty,
+}: {
+  title: string;
+  items: Array<{
+    id: string;
+    title: string;
+    eyebrow: string;
+    description: string;
+    action?: () => void | Promise<void>;
+  }>;
+  empty: string;
+}) {
+  return (
+    <div>
+      <h2 className="text-sm font-semibold">{title}</h2>
+      {items.length ? (
+        <div className="mt-3 space-y-3">
+          {items.map((item) => (
+            <article
+              className="rounded-md border border-[var(--border)] bg-white p-3"
+              key={item.id}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <RelationshipChip label={item.eyebrow} />
+                {item.action ? (
+                  <form action={item.action}>
+                    <Button type="submit" variant="secondary">
+                      Remove
+                    </Button>
+                  </form>
+                ) : null}
+              </div>
+              <h3 className="mt-2 text-sm font-medium">{item.title}</h3>
+              <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                {item.description}
+              </p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{empty}</p>
+      )}
+    </div>
+  );
+}
+
+function groupGraphBuckets(
+  knowledge: Array<{
+    id: string;
+    title: string;
+    body: string;
+    knowledgeType: KnowledgeType;
+    lifecycleStatus: string;
+  }>,
+) {
+  return knowledge.reduce(
+    (buckets, item) => {
+      const bucket = getGraphBucketForKnowledgeType(item.knowledgeType);
+      const graphItem = {
+        id: item.id,
+        title: item.title,
+        eyebrow:
+          bucket === "decisions" && item.lifecycleStatus === "rejected"
+            ? "rejected approach"
+            : getKnowledgeTypeLabel(item.knowledgeType),
+        description: item.body,
+      };
+
+      if (bucket === "components") {
+        buckets.components.push(graphItem);
+      } else if (bucket === "constraints") {
+        buckets.constraints.push(graphItem);
+      } else if (bucket === "decisions") {
+        buckets.decisions.push(graphItem);
+      }
+
+      return buckets;
+    },
+    {
+      components: [] as Array<{
+        id: string;
+        title: string;
+        eyebrow: string;
+        description: string;
+      }>,
+      constraints: [] as Array<{
+        id: string;
+        title: string;
+        eyebrow: string;
+        description: string;
+      }>,
+      decisions: [] as Array<{
+        id: string;
+        title: string;
+        eyebrow: string;
+        description: string;
+      }>,
+    },
   );
 }
 
