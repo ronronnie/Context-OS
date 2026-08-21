@@ -129,6 +129,7 @@ Do not duplicate authentication data in a separate profile model unless Context 
 - Dashboard and daily workflow surfaces now use live Product Memory data, including selected product, module/feature counts, verified memory count, unresolved conflicts, recent sources, recent tasks, recent Context Packs, suggested next actions, and route-level loading/error states.
 - Knowledge and source libraries include basic filters for type, lifecycle, authority, source type, module, and feature.
 - Manual Source Ingestion supports product/module/feature attachment, source type validation, metadata JSON, raw content storage, source detail pages, connected knowledge display, and an extraction handoff shape for the later AI extraction prompt.
+- Manual Figma source placeholders are documented in `docs/figma-integration-plan.md`. `figma_link` and `figma_notes` sources can store Figma file, page, frame, node, URL, and component references in source metadata without connecting to Figma yet.
 - AI provider abstraction supports server-side text, structured output, and embedding operations with timeout, retry, error handling, malformed response handling, and a Product Memory extraction operation that returns proposed candidates only.
 - AI Knowledge Extraction can run from a raw Source, persist atomic candidates for review, and only write approved candidates into verified Product Memory with source evidence attached.
 - Conflict detection compares extracted candidates to verified memory, surfaces contradictions, supersessions, duplicates, historical/current mismatches, and authority mismatches, and requires explicit human resolution before conflicted candidates enter Product Memory.
@@ -202,6 +203,8 @@ Open `/sources` after signing in to manually add fictional source evidence. A so
 Supported source types are `note`, `prd`, `jira_ticket`, `figma_link`, `figma_notes`, `research_note`, `release_note`, `slack_summary`, `code_note`, `design_system_doc`, and `meeting_note`.
 
 Each source detail page shows metadata, raw content, graph attachment, connected knowledge items, and an extraction status placeholder. Sources remain evidence records; trusted Product Memory still requires structured knowledge linked to sources and human verification.
+
+For Figma evidence, use `figma_link` for a design URL and `figma_notes` for manually written design context. Optional metadata keys are `figmaFileKey`, `figmaNodeId`, `figmaUrl`, `figmaPageName`, `figmaFrameName`, and `componentName`. Source detail pages render these fields when present and show related feature/component Product Memory links. The future Figma path is documented in `docs/figma-integration-plan.md`; the MVP does not connect to Figma APIs, OAuth, or MCP yet.
 
 ## AI Knowledge Extraction Workflow
 

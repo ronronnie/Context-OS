@@ -9,6 +9,11 @@ import { SourceChip } from "@/components/source-chip";
 import { getSourceDetail } from "@/db/queries";
 import { getRecentSourceExtractions } from "@/db/queries";
 import { requireUser } from "@/lib/auth/session";
+import {
+  getFigmaMetadataRows,
+  getFigmaSourceUrl,
+  isFigmaSourceType,
+} from "@/lib/source-ingestion/figma-metadata";
 import { getSourceExtractionStatus } from "@/lib/source-ingestion/extraction";
 import { getSourceTypeLabel } from "@/lib/source-ingestion/source-model";
 import {
@@ -39,6 +44,15 @@ export default async function SourceDetailPage({
     user.id,
   );
   const startExtraction = startSourceExtractionAction.bind(null, productId, sourceId);
+  const figmaMetadataRows = isFigmaSourceType(detail.source.sourceType)
+    ? getFigmaMetadataRows(detail.source.metadata)
+    : [];
+  const figmaUrl = isFigmaSourceType(detail.source.sourceType)
+    ? getFigmaSourceUrl(detail.source)
+    : null;
+  const connectedComponents = isFigmaSourceType(detail.source.sourceType)
+    ? detail.knowledge.filter((knowledge) => knowledge.knowledgeType === "component")
+    : [];
 
   return (
     <div className="space-y-6">
@@ -151,6 +165,77 @@ export default async function SourceDetailPage({
               </pre>
             </div>
           </section>
+
+          {isFigmaSourceType(detail.source.sourceType) ? (
+            <section className="rounded-md border border-[var(--border)] bg-[var(--panel)]">
+              <SectionHeader
+                title="Figma reference"
+                description="Manual Figma evidence for now. Future ingestion can use these identifiers without changing source records."
+              />
+              <div className="space-y-4 p-4">
+                <dl className="grid gap-3 text-sm">
+                  <MetaRow
+                    label="URL"
+                    value={
+                      figmaUrl ? (
+                        <a
+                          className="break-all font-medium text-[var(--accent-strong)]"
+                          href={figmaUrl}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          {figmaUrl}
+                        </a>
+                      ) : (
+                        "No Figma URL"
+                      )
+                    }
+                  />
+                  {figmaMetadataRows.map((row) => (
+                    <MetaRow key={row.key} label={row.label} value={row.value} />
+                  ))}
+                  <MetaRow
+                    label="Feature"
+                    value={
+                      detail.feature && detail.module ? (
+                        <Link
+                          className="font-medium text-[var(--accent-strong)]"
+                          href={featureRoute(
+                            productId,
+                            detail.module.id,
+                            detail.feature.id,
+                          )}
+                        >
+                          {detail.feature.name}
+                        </Link>
+                      ) : (
+                        "No feature attachment"
+                      )
+                    }
+                  />
+                </dl>
+                <div className="rounded-md border border-[var(--border)] bg-white p-3">
+                  <h2 className="text-sm font-semibold">Connected components</h2>
+                  {connectedComponents.length ? (
+                    <div className="mt-2 space-y-2">
+                      {connectedComponents.map((component) => (
+                        <div key={component.id}>
+                          <p className="text-sm font-medium">{component.title}</p>
+                          <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                            {component.body}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                      No component Product Memory is linked to this Figma source yet.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
+          ) : null}
 
           <section className="rounded-md border border-[var(--border)] bg-[var(--panel)]">
             <SectionHeader title="Audit trail" />
