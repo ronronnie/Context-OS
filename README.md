@@ -346,6 +346,7 @@ npm run dev
 npm run lint
 npm run typecheck
 npm run test
+npm run eval
 npm run build
 npm run start
 npm run db:generate
@@ -354,6 +355,22 @@ npm run db:seed
 ```
 
 `npm run build` uses the webpack builder because the default Turbopack build can attempt a sandbox-blocked local port bind in this environment.
+
+## QA And Evaluation Harness
+
+Run `npm run eval` to execute deterministic Nextzen Demo evaluation cases for retrieval and Context Pack quality. The harness lives in `src/lib/evaluation/nextzen-evaluation.ts` with a CLI runner at `scripts/evaluate-nextzen.ts`.
+
+The evaluation cases cover:
+
+- Add bulk approval to Progress Report Review
+- Redesign report correction request flow
+- Change confirmation modal pattern
+- Increase bulk operation limit
+- Compare Application Review and Progress Report Review
+- Identify outdated bulk API knowledge
+- Ask why persistent bulk toolbar should not be used
+
+The report prints expected item recall, unexpected excluded item hits, source evidence coverage, outdated/conflict/rejected warning surfacing, tenant isolation, and selected memory for each case. The runner exits nonzero if a case falls below the configured threshold, so it can be used before changing retrieval or Context Pack generation.
 
 ## Project Rules
 
