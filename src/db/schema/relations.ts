@@ -6,6 +6,7 @@ import {
   contextPacks,
   featureRelationships,
   features,
+  knowledgeEmbeddings,
   knowledgeItems,
   knowledgeConflicts,
   knowledgeEvents,
@@ -22,6 +23,7 @@ import {
 export const userRelations = relations(user, ({ many }) => ({
   products: many(products),
   knowledgeItems: many(knowledgeItems),
+  knowledgeEmbeddings: many(knowledgeEmbeddings),
   sources: many(sources),
   tasks: many(tasks),
 }));
@@ -89,6 +91,10 @@ export const knowledgeItemRelations = relations(knowledgeItems, ({ one, many }) 
     references: [user.id],
   }),
   sourceLinks: many(knowledgeSources),
+  embedding: one(knowledgeEmbeddings, {
+    fields: [knowledgeItems.id],
+    references: [knowledgeEmbeddings.knowledgeItemId],
+  }),
   events: many(knowledgeEvents),
   outgoingRelationships: many(knowledgeRelationships, {
     relationName: "fromKnowledge",
@@ -208,6 +214,17 @@ export const knowledgeConflictRelations = relations(knowledgeConflicts, ({ one }
   resolver: one(user, {
     fields: [knowledgeConflicts.resolvedBy],
     references: [user.id],
+  }),
+}));
+
+export const knowledgeEmbeddingRelations = relations(knowledgeEmbeddings, ({ one }) => ({
+  product: one(products, {
+    fields: [knowledgeEmbeddings.productId],
+    references: [products.id],
+  }),
+  knowledgeItem: one(knowledgeItems, {
+    fields: [knowledgeEmbeddings.knowledgeItemId],
+    references: [knowledgeItems.id],
   }),
 }));
 

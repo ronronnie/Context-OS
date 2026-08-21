@@ -1,4 +1,8 @@
 import { AIConfigurationError } from "@/ai/errors";
+import {
+  DEFAULT_EMBEDDING_MODEL,
+  getDefaultEmbeddingDimensions,
+} from "@/ai/embedding-config";
 
 export type AIProviderName = "openai-compatible";
 
@@ -26,7 +30,10 @@ export function getAIConfig(
 
   const textModel = env.AI_TEXT_MODEL ?? "gpt-4.1-mini";
   const structuredModel = env.AI_STRUCTURED_MODEL ?? textModel;
-  const embeddingDimensions = Number(env.AI_EMBEDDING_DIMENSIONS ?? "1536");
+  const embeddingModel = env.AI_EMBEDDING_MODEL ?? DEFAULT_EMBEDDING_MODEL;
+  const embeddingDimensions = Number(
+    env.AI_EMBEDDING_DIMENSIONS ?? String(getDefaultEmbeddingDimensions(embeddingModel)),
+  );
   const timeoutMs = Number(env.AI_TIMEOUT_MS ?? "30000");
   const maxRetries = Number(env.AI_MAX_RETRIES ?? "1");
 
@@ -50,7 +57,7 @@ export function getAIConfig(
     baseUrl: env.AI_BASE_URL ?? "https://api.openai.com/v1",
     textModel,
     structuredModel,
-    embeddingModel: env.AI_EMBEDDING_MODEL ?? "text-embedding-3-small",
+    embeddingModel,
     embeddingDimensions,
     timeoutMs,
     maxRetries,

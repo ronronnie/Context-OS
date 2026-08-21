@@ -10,8 +10,10 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  vector,
 } from "drizzle-orm/pg-core";
 
+import { DEFAULT_EMBEDDING_DIMENSIONS } from "@/ai/embedding-config";
 import { user } from "@/db/schema/auth";
 
 export const knowledgeTypeEnum = pgEnum("knowledge_type", [
@@ -201,6 +203,25 @@ export const knowledgeSources = pgTable("knowledge_sources", {
 }, (table) => [
   primaryKey({ columns: [table.knowledgeItemId, table.sourceId] }),
   index("knowledge_sources_source_id_idx").on(table.sourceId),
+]);
+
+export const knowledgeEmbeddings = pgTable("knowledge_embeddings", {
+  knowledgeItemId: uuid("knowledge_item_id")
+    .primaryKey()
+    .references(() => knowledgeItems.id, { onDelete: "cascade" }),
+  productId: uuid("product_id").notNull().references(() => products.id),
+  embedding: vector("embedding", {
+    dimensions: DEFAULT_EMBEDDING_DIMENSIONS,
+  }).notNull(),
+  embeddingModel: text("embedding_model").notNull(),
+  embeddingDimensions: integer("embedding_dimensions").notNull(),
+  contentHash: text("content_hash").notNull(),
+  embeddedAt: timestamp("embedded_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("knowledge_embeddings_product_id_idx").on(table.productId),
+  index("knowledge_embeddings_model_idx").on(table.embeddingModel),
+  index("knowledge_embeddings_embedded_at_idx").on(table.embeddedAt),
 ]);
 
 export const sourceExtractions = pgTable("source_extractions", {
@@ -421,6 +442,7 @@ export type Product = typeof products.$inferSelect;
 export type Module = typeof modules.$inferSelect;
 export type Feature = typeof features.$inferSelect;
 export type KnowledgeItem = typeof knowledgeItems.$inferSelect;
+export type KnowledgeEmbedding = typeof knowledgeEmbeddings.$inferSelect;
 export type KnowledgeEvent = typeof knowledgeEvents.$inferSelect;
 export type Source = typeof sources.$inferSelect;
 export type FeatureRelationship = typeof featureRelationships.$inferSelect;

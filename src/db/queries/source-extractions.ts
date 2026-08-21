@@ -4,6 +4,7 @@ import { extractProductKnowledge } from "@/ai";
 import type { AIProvider } from "@/ai/provider";
 import type { ExistingFeatureContext } from "@/ai/prompts/product-knowledge-extraction";
 import { db as defaultDb, type AppDb } from "@/db";
+import { trySyncKnowledgeEmbedding } from "@/db/queries/embeddings";
 import { getFeatureKnowledge } from "@/db/queries/features";
 import { getSourceDetail } from "@/db/queries/sources";
 import { assertProductOwnership } from "@/db/queries/products";
@@ -299,6 +300,8 @@ async function approveExtractionCandidateInternal(
       updatedAt: new Date(),
     })
     .where(eq(sourceExtractionCandidates.id, candidateId));
+
+  await trySyncKnowledgeEmbedding(knowledge.id, productId, userId, db);
 
   return knowledge;
 }

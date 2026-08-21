@@ -1,6 +1,10 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 
 import { db as defaultDb, type AppDb } from "@/db";
+import {
+  isKnowledgeEmbeddable,
+  trySyncKnowledgeEmbedding,
+} from "@/db/queries/embeddings";
 import { assertProductOwnership } from "@/db/queries/products";
 import {
   knowledgeEvents,
@@ -30,6 +34,10 @@ export async function createKnowledgeItem(
       lifecycleStatus: input.lifecycleStatus ?? "proposed",
     })
     .returning();
+
+  if (rows[0] && isKnowledgeEmbeddable(rows[0])) {
+    await trySyncKnowledgeEmbedding(rows[0].id, input.productId, userId, db);
+  }
 
   return rows[0];
 }
@@ -87,6 +95,10 @@ export async function createFeatureKnowledgeItem(
     note: "Knowledge created manually.",
     createdBy: userId,
   });
+
+  if (isKnowledgeEmbeddable(knowledge)) {
+    await trySyncKnowledgeEmbedding(knowledge.id, input.productId, userId, db);
+  }
 
   return knowledge;
 }
@@ -189,6 +201,10 @@ export async function updateFeatureKnowledgeItem(
     createdBy: userId,
   });
 
+  if (isKnowledgeEmbeddable(updated)) {
+    await trySyncKnowledgeEmbedding(updated.id, productId, userId, db);
+  }
+
   return updated;
 }
 
@@ -240,6 +256,10 @@ export async function transitionKnowledgeLifecycle(
     note: `Lifecycle changed from ${existing.lifecycleStatus} to ${targetStatus}.`,
     createdBy: userId,
   });
+
+  if (isKnowledgeEmbeddable(updated)) {
+    await trySyncKnowledgeEmbedding(updated.id, productId, userId, db);
+  }
 
   return updated;
 }

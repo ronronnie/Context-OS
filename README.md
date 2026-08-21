@@ -15,6 +15,7 @@ The MVP uses fictional Nextzen Demo data. Do not ingest real employer data or pr
 - `@neondatabase/serverless`
 - Neon Auth / Managed Better Auth through Better Auth
 - pgvector planned inside Neon Postgres for embeddings
+- pgvector inside Neon Postgres for semantic retrieval
 
 ## Local Setup
 
@@ -79,7 +80,7 @@ Database concerns are separated from UI components:
 - `src/db/queries/` contains authorized query and service functions.
 - `src/db/seed.ts` seeds fictional development data.
 
-Core Product Memory tables include products, modules, features, knowledge items, sources, knowledge-source links, knowledge relationships, feature relationships, tasks, Context Packs, and Context Pack items.
+Core Product Memory tables include products, modules, features, knowledge items, knowledge embeddings, sources, knowledge-source links, knowledge relationships, feature relationships, tasks, Context Packs, and Context Pack items.
 
 ## Authorization Model
 
@@ -116,6 +117,8 @@ Do not duplicate authentication data in a separate profile model unless Context 
 - Product Graph services support feature neighborhoods, knowledge neighborhoods, product graph summaries, manual feature/knowledge relationship creation, and relationship removal with product ownership checks.
 - Product, feature, and knowledge detail pages include structured graph views for related features, components, decisions, constraints, and knowledge relationships.
 - Knowledge detail pages show full body, source evidence, editable relationships, lifecycle history, valid dates, and created/updated metadata.
+- Semantic retrieval uses pgvector in Neon Postgres plus hybrid ranking across feature proximity, Product Graph relationships, authority, lifecycle, recency, and task intent.
+- Embedding sync is wired into verified Product Memory creation, verified updates, lifecycle transitions, and approved extraction candidates.
 - Manual Source Ingestion supports product/module/feature attachment, source type validation, metadata JSON, raw content storage, source detail pages, connected knowledge display, and an extraction handoff shape for the later AI extraction prompt.
 - AI provider abstraction supports server-side text, structured output, and embedding operations with timeout, retry, error handling, malformed response handling, and a Product Memory extraction operation that returns proposed candidates only.
 - AI Knowledge Extraction can run from a raw Source, persist atomic candidates for review, and only write approved candidates into verified Product Memory with source evidence attached.
@@ -190,6 +193,28 @@ Supported knowledge relationship types are `supports`, `contradicts`, `supersede
 The product detail page shows the MVP Product Graph summary. Feature detail pages show related features plus applicable constraints, decisions, rejected approaches, and components. Knowledge detail pages allow users to add or remove relationships between memory items while preserving source-backed history.
 
 The fictional Nextzen Demo seed includes graph edges for Progress Report Review reusing Application Review bulk action patterns, `BulkActionBar`, `ConfirmationModal`, the rejected persistent toolbar, and the 100-record API limit.
+
+## Semantic Retrieval Architecture
+
+Prompt-time retrieval starts with `retrieveProductContext({ productId, userId, taskDescription, primaryFeatureId })`. The service verifies product ownership before generating the task embedding or querying vectors.
+
+Embeddings are stored in `knowledge_embeddings` with:
+
+- `knowledge_item_id`
+- `product_id`
+- `embedding`
+- `embedding_model`
+- `embedding_dimensions`
+- `content_hash`
+- `embedded_at`
+
+The migration enables pgvector with `CREATE EXTENSION IF NOT EXISTS vector;`. The schema uses the centralized default embedding dimensions from `src/ai/embedding-config.ts`. Changing embedding dimensions later should be done as an explicit migration so the Postgres vector column stays compatible with the configured model.
+
+Only trusted Product Memory is embedded automatically. Verified knowledge is embedded when it is created, approved from extraction, marked verified, or meaningfully edited. Trusted `rejected_approach` memory can also be embedded because rejected historical approaches are useful context. Rejected extraction candidates are never embedded because they never become trusted Product Memory.
+
+Retrieval is hybrid. Vector similarity is only the first candidate source. Final ranking also considers primary feature association, module proximity, feature relationships, knowledge relationships, authority, lifecycle status, verification recency, and task intent. Current canonical memory normally ranks above obsolete or low-authority memory, while historical rejected approaches can still rank when they are relevant to changing an existing pattern.
+
+Development diagnostics include semantic score, authority adjustment, relationship adjustment, lifecycle adjustment, proximity adjustment, recency adjustment, final score, and the inclusion reason. These diagnostics are returned by the service in development mode or when explicitly requested, and are not exposed in production UI by default.
 
 ## AI Provider Architecture
 
