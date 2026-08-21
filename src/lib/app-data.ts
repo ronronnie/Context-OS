@@ -1,5 +1,6 @@
 import {
   Boxes,
+  BrainCircuit,
   Database,
   FileText,
   FolderKanban,
@@ -22,6 +23,7 @@ export const navItems: NavItem[] = [
   { label: "Knowledge", href: "/knowledge", icon: Database },
   { label: "Tasks", href: "/tasks", icon: ListChecks },
   { label: "Context Packs", href: "/context-packs", icon: Sparkles },
+  { label: "Intelligence", href: "/intelligence", icon: BrainCircuit },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 

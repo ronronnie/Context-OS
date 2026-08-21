@@ -122,6 +122,7 @@ Do not duplicate authentication data in a separate profile model unless Context 
 - Task creation now generates versioned Context Packs from retrieved Product Memory, stores included items, and preserves older regenerated outputs.
 - Context Pack detail supports Codex, Claude, ChatGPT, and plain Markdown export modes with copy, download, and live preview.
 - Context Pack detail supports task outcome capture from Codex, Claude, ChatGPT, or user notes. Outcomes become source records and AI-extracted decision candidates must be reviewed before entering Product Memory.
+- Product Intelligence provides guided, structured product-aware questions over retrieved Product Memory and graph relationships without becoming a generic chat interface.
 - Manual Source Ingestion supports product/module/feature attachment, source type validation, metadata JSON, raw content storage, source detail pages, connected knowledge display, and an extraction handoff shape for the later AI extraction prompt.
 - AI provider abstraction supports server-side text, structured output, and embedding operations with timeout, retry, error handling, malformed response handling, and a Product Memory extraction operation that returns proposed candidates only.
 - AI Knowledge Extraction can run from a raw Source, persist atomic candidates for review, and only write approved candidates into verified Product Memory with source evidence attached.
@@ -268,6 +269,14 @@ After exporting a Context Pack and completing work in Codex, Claude, ChatGPT, or
 5. Review each candidate, edit title/body/type/authority/evidence, optionally link it to existing Product Memory, then approve or reject.
 
 Only approved candidates become verified `knowledge_items`. Approval creates the evidence link, task link, Context Pack/outcome link, optional knowledge relationship, embedding sync, and a feature timeline event. Rejected and pending candidates stay as review records and never become trusted Product Memory automatically.
+
+## Product Intelligence Workflow
+
+Open `/intelligence` to run guided product-aware queries. The user chooses a product, optional module, optional feature, a structured question type, and optional detail. Supported question types cover change impact, similar solutions, pattern rationale, modification considerations, recent decisions, outdated or conflicting knowledge, and reused components or patterns.
+
+Product Intelligence uses retrieval and Product Graph relationships before synthesis. The AI provider receives only selected Product Memory, relationship paths, and source evidence. Generated answers show the direct answer, supporting memory ids, relationship path, source evidence, risks, open questions, confidence, and unsupported claims.
+
+Product Intelligence answers are not Product Memory. They are analysis outputs. Any new decision or rule discovered from the work still needs the decision capture review flow before it can become trusted memory.
 
 ## AI Provider Architecture
 

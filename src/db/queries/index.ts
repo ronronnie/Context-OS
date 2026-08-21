@@ -5,6 +5,7 @@ export * from "./features";
 export * from "./knowledge";
 export * from "./modules";
 export * from "./product-graph";
+export * from "./product-intelligence";
 export * from "./products";
 export * from "./retrieval";
 export * from "./sources";
