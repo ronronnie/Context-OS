@@ -33,6 +33,7 @@ export function SourceEvidenceCard({
       <h3 className="mt-2 text-sm font-medium">{evidence.sourceName}</h3>
       {evidence.sourceUrl ? (
         <a
+          aria-label={`Open source URL for ${evidence.sourceName}`}
           className="mt-1 block break-all text-xs font-medium text-[var(--accent-strong)]"
           href={evidence.sourceUrl}
           rel="noreferrer"
@@ -41,7 +42,7 @@ export function SourceEvidenceCard({
           {evidence.sourceUrl}
         </a>
       ) : null}
-      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+      <p className="mt-2 break-words text-sm leading-6 text-[var(--muted)]">
         {evidence.evidenceText}
       </p>
       <dl className="mt-3 grid gap-2 border-t border-[var(--border)] pt-3 text-xs sm:grid-cols-2">

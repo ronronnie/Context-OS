@@ -646,7 +646,11 @@ function GraphList({
                 <RelationshipChip label={item.eyebrow} />
                 {item.action ? (
                   <form action={item.action}>
-                    <Button type="submit" variant="secondary">
+                    <Button
+                      aria-label={`Remove relationship to ${item.title}`}
+                      type="submit"
+                      variant="secondary"
+                    >
                       Remove
                     </Button>
                   </form>

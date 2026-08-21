@@ -1,4 +1,4 @@
-import { MoreHorizontal, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -28,17 +28,16 @@ export function PageHeader({
           {description}
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        {actions.map((action, index) => (
-          <Button key={action.label} variant={index === 0 ? "default" : "secondary"}>
-            {index === 0 ? <Plus className="h-4 w-4" aria-hidden /> : null}
-            {action.label}
-          </Button>
-        ))}
-        <Button variant="ghost" aria-label="More actions">
-          <MoreHorizontal className="h-4 w-4" aria-hidden />
-        </Button>
-      </div>
+      {actions.length ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {actions.map((action, index) => (
+            <Button key={action.label} variant={index === 0 ? "default" : "secondary"}>
+              {index === 0 ? <Plus className="h-4 w-4" aria-hidden /> : null}
+              {action.label}
+            </Button>
+          ))}
+        </div>
+      ) : null}
     </header>
   );
 }

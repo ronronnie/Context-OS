@@ -36,6 +36,20 @@ textarea {
   font: inherit;
 }
 
+a {
+  text-underline-offset: 3px;
+}
+
+a:focus-visible,
+summary:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px #99f6e4;
+}
+
 ::selection {
   background: #99f6e4;
   color: #042f2e;

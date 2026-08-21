@@ -18,6 +18,7 @@ export function TrustLabel({
 }) {
   return (
     <span
+      aria-label={`Trust: ${label}`}
       className={cn(
         "inline-flex min-h-6 items-center rounded-md border px-2 py-0.5 text-xs font-medium",
         styles[label] ?? styles.Unverified,

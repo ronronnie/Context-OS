@@ -308,7 +308,11 @@ export default async function KnowledgeDetailPage({
                             label={formatRelationshipType(relationship.relationshipType)}
                           />
                           <form action={removeRelationship}>
-                            <Button type="submit" variant="secondary">
+                            <Button
+                              aria-label={`Remove relationship to ${related?.title ?? relatedId}`}
+                              type="submit"
+                              variant="secondary"
+                            >
                               Remove
                             </Button>
                           </form>

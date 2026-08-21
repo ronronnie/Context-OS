@@ -68,11 +68,20 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
         />
       </label>
       {error ? (
-        <p className="rounded-md border border-[#fecaca] bg-[#fee2e2] px-3 py-2 text-sm text-[#991b1b]">
+        <p
+          className="rounded-md border border-[#fecaca] bg-[#fee2e2] px-3 py-2 text-sm text-[#991b1b]"
+          id="auth-form-error"
+          role="alert"
+        >
           {error}
         </p>
       ) : null}
-      <Button className="w-full" disabled={isPending}>
+      <Button
+        aria-describedby={error ? "auth-form-error" : undefined}
+        className="w-full"
+        disabled={isPending}
+        type="submit"
+      >
         {isPending ? "Working..." : mode === "sign-up" ? "Sign up" : "Sign in"}
       </Button>
     </form>
