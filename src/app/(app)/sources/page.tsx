@@ -13,10 +13,17 @@ import {
   getSourceTypeLabel,
   sourceTypeOptions,
 } from "@/lib/source-ingestion/source-model";
+import { hasActiveSourceFilters, parseSourceFilters } from "@/lib/workflow/filters";
 
-export default async function SourcesPage() {
+export default async function SourcesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const user = await requireUser();
-  const workspace = await getSourceIngestionWorkspace(user.id);
+  const params = await searchParams;
+  const filters = parseSourceFilters(params);
+  const workspace = await getSourceIngestionWorkspace(user.id, filters);
   const defaultProductId = workspace.products[0]?.id ?? "";
 
   return (
@@ -27,6 +34,62 @@ export default async function SourcesPage() {
         description="Ingest fictional source material manually. Sources are evidence records; they do not become trusted Product Memory until linked claims are reviewed."
         actions={[]}
       />
+
+      <section className="rounded-md border border-[var(--border)] bg-[var(--panel)]">
+        <SectionHeader title="Filters" />
+        <form className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-5" method="GET">
+          <FilterSelect
+            label="Product"
+            name="productId"
+            options={workspace.products.map((product) => ({
+              value: product.id,
+              label: product.name,
+            }))}
+            value={filters.productId}
+          />
+          <FilterSelect
+            label="Module"
+            name="moduleId"
+            options={workspace.products.flatMap((product) =>
+              product.modules.map((module) => ({
+                value: module.id,
+                label: `${product.name} / ${module.name}`,
+              })),
+            )}
+            value={filters.moduleId}
+          />
+          <FilterSelect
+            label="Feature"
+            name="featureId"
+            options={workspace.products.flatMap((product) =>
+              product.modules.flatMap((module) =>
+                module.features.map((feature) => ({
+                  value: feature.id,
+                  label: `${module.name} / ${feature.name}`,
+                })),
+              ),
+            )}
+            value={filters.featureId}
+          />
+          <FilterSelect
+            label="Source type"
+            name="sourceType"
+            options={sourceTypeOptions}
+            value={filters.sourceType}
+          />
+          <div className="flex items-end gap-2">
+            <Button type="submit">Apply</Button>
+            {hasActiveSourceFilters(filters) ? (
+              <Link
+                className="inline-flex h-9 items-center rounded-md border border-[var(--border)] bg-white px-3 text-sm font-medium"
+                href="/sources"
+              >
+                Clear
+              </Link>
+            ) : null}
+          </div>
+        </form>
+      </section>
 
       <section className="grid gap-6 xl:grid-cols-[420px_1fr]">
         <form
@@ -196,5 +259,35 @@ export default async function SourcesPage() {
         </section>
       </section>
     </div>
+  );
+}
+
+function FilterSelect({
+  label,
+  name,
+  value,
+  options,
+}: {
+  label: string;
+  name: string;
+  value?: string;
+  options: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-medium">{label}</span>
+      <select
+        className="mt-1 h-10 w-full rounded-md border border-[var(--border)] bg-white px-3 text-sm outline-none focus:ring-4 focus:ring-[#99f6e4]"
+        defaultValue={value ?? ""}
+        name={name}
+      >
+        <option value="">Any</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

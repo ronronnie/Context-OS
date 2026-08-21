@@ -93,6 +93,81 @@ export default async function ProductDetailPage({
         </div>
       </section>
 
+      <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
+        <section className="rounded-md border border-[var(--border)] bg-[var(--panel)]">
+          <SectionHeader
+            title="Feature map"
+            description="Modules and features currently mapped into Product Memory."
+          />
+          <div className="grid gap-3 p-4 lg:grid-cols-2">
+            {productModules.map((module) => (
+              <div className="rounded-md border border-[var(--border)] bg-white p-3" key={module.id}>
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-sm font-semibold">{module.name}</h2>
+                  <span className="text-xs text-[var(--muted)]">
+                    {module.featureCount} features
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {graphSummary.features
+                    .filter((feature) => feature.moduleId === module.id)
+                    .map((feature) => (
+                      <span
+                        className="rounded-md border border-[var(--border)] bg-[var(--panel-subtle)] px-2 py-1 text-xs"
+                        key={feature.id}
+                      >
+                        {feature.name}
+                      </span>
+                    ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-md border border-[var(--border)] bg-[var(--panel)]">
+          <SectionHeader title="Top knowledge categories" />
+          <div className="space-y-3 p-4">
+            {topKnowledgeCategories(graphSummary.knowledge).map((category) => (
+              <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--border)] bg-white p-3" key={category.label}>
+                <span className="text-sm font-medium">{category.label}</span>
+                <span className="text-sm text-[var(--muted)]">{category.count}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-3">
+        <RecentPanel
+          empty="No open questions have been captured."
+          items={summary.openQuestions.map((item) => ({
+            id: item.id,
+            title: item.title,
+            description: item.body,
+          }))}
+          title="Open questions"
+        />
+        <RecentPanel
+          empty="No pending conflicts."
+          items={summary.conflictAlerts.map((conflict) => ({
+            id: conflict.id,
+            title: conflict.conflictType.replaceAll("_", " "),
+            description: conflict.summary,
+          }))}
+          title="Conflict alerts"
+        />
+        <RecentPanel
+          empty="No timeline events yet."
+          items={summary.recentTimeline.map((event) => ({
+            id: event.id,
+            title: event.title,
+            description: `${String(event.eventType).replaceAll("_", " ")} - ${event.createdAt.toLocaleDateString()}`,
+          }))}
+          title="Recent timeline"
+        />
+      </section>
+
       <section className="grid gap-6 xl:grid-cols-[420px_1fr]">
         <div className="space-y-6">
           <form
@@ -234,6 +309,23 @@ export default async function ProductDetailPage({
       </section>
     </div>
   );
+}
+
+function topKnowledgeCategories(
+  items: Array<{ knowledgeType: string }>,
+) {
+  const counts = items.reduce((map, item) => {
+    map.set(item.knowledgeType, (map.get(item.knowledgeType) ?? 0) + 1);
+    return map;
+  }, new Map<string, number>());
+
+  return Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([label, count]) => ({
+      label: label.replaceAll("_", " "),
+      count,
+    }));
 }
 
 function GraphMetric({ label, value }: { label: string; value: number }) {

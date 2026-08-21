@@ -99,11 +99,34 @@ export default async function FeatureDetailPage({
         / {workspace.feature.name}
       </nav>
 
+      <nav
+        aria-label="Feature workspace sections"
+        className="flex gap-2 overflow-x-auto rounded-md border border-[var(--border)] bg-[var(--panel)] p-2"
+      >
+        {[
+          ["#overview", "Overview"],
+          ["#knowledge", "Knowledge"],
+          ["#sources", "Sources"],
+          ["#relationships", "Relationships"],
+          ["#timeline", "Timeline"],
+          ["#tasks", "Tasks"],
+        ].map(([href, label]) => (
+          <a
+            className="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-[var(--muted-strong)] hover:bg-[var(--panel-subtle)]"
+            href={href}
+            key={href}
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
+
       <section className="grid gap-6 xl:grid-cols-[420px_1fr]">
         <div className="space-y-6">
           <form
             action={updateFeature}
             className="rounded-md border border-[var(--border)] bg-[var(--panel)]"
+            id="overview"
           >
             <SectionHeader
               title="Feature overview"
@@ -170,7 +193,7 @@ export default async function FeatureDetailPage({
             </div>
           </form>
 
-          <SidePanel title="Sources connected to this feature">
+          <SidePanel id="sources" title="Sources connected to this feature">
             {workspace.sources.length ? (
               <div className="flex flex-wrap gap-2">
                 {workspace.sources.map((source) => (
@@ -193,6 +216,7 @@ export default async function FeatureDetailPage({
           <form
             action={createRelationship}
             className="rounded-md border border-[var(--border)] bg-[var(--panel)]"
+            id="relationships"
           >
             <SectionHeader
               title="Add feature relationship"
@@ -295,7 +319,7 @@ export default async function FeatureDetailPage({
               title="Knowledge grouped by type"
               description="Each claim keeps authority, confidence, lifecycle, evidence count, and verification state visible."
             />
-            <div className="divide-y divide-[var(--border)]">
+            <div className="divide-y divide-[var(--border)]" id="knowledge">
               {knowledgeTypeOptions.map((type) => {
                 const items = knowledgeByType[type.value] ?? [];
                 return (
@@ -348,7 +372,7 @@ export default async function FeatureDetailPage({
           </section>
 
           <section className="grid gap-6 lg:grid-cols-2">
-            <SidePanel title="Feature timeline">
+            <SidePanel id="timeline" title="Feature timeline">
               {workspace.timeline.length ? (
                 <div className="space-y-3">
                   {workspace.timeline.map((event) => (
@@ -379,7 +403,7 @@ export default async function FeatureDetailPage({
               )}
             </SidePanel>
 
-            <SidePanel title="Tasks and Context Packs">
+            <SidePanel id="tasks" title="Tasks and Context Packs">
               {workspace.tasks.length || workspace.contextPacks.length ? (
                 <div className="space-y-3">
                   {workspace.tasks.map((task) => (
@@ -577,14 +601,16 @@ function DateInput({
 }
 
 function SidePanel({
+  id,
   title,
   children,
 }: {
+  id?: string;
   title: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-md border border-[var(--border)] bg-[var(--panel)]">
+    <section id={id} className="rounded-md border border-[var(--border)] bg-[var(--panel)]">
       <SectionHeader title={title} />
       <div className="p-4">{children}</div>
     </section>

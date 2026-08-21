@@ -1,10 +1,12 @@
-import { count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 
 import { db as defaultDb, type AppDb } from "@/db";
 import { productIdAndOwnershipCondition, productOwnershipCondition, requireUserId } from "@/db/queries/authorization";
 import {
   contextPacks,
   features,
+  knowledgeConflicts,
+  knowledgeEvents,
   knowledgeItems,
   modules,
   products,
@@ -99,6 +101,34 @@ export async function getProductSummary(
     .where(eq(knowledgeItems.productId, productId))
     .orderBy(desc(knowledgeItems.updatedAt))
     .limit(5);
+  const openQuestions = await db
+    .select()
+    .from(knowledgeItems)
+    .where(
+      and(
+        eq(knowledgeItems.productId, productId),
+        eq(knowledgeItems.knowledgeType, "open_question"),
+      ),
+    )
+    .orderBy(desc(knowledgeItems.updatedAt))
+    .limit(5);
+  const conflictAlerts = await db
+    .select()
+    .from(knowledgeConflicts)
+    .where(
+      and(
+        eq(knowledgeConflicts.productId, productId),
+        eq(knowledgeConflicts.resolution, "pending"),
+      ),
+    )
+    .orderBy(desc(knowledgeConflicts.createdAt))
+    .limit(5);
+  const recentTimeline = await db
+    .select()
+    .from(knowledgeEvents)
+    .where(eq(knowledgeEvents.productId, productId))
+    .orderBy(desc(knowledgeEvents.createdAt))
+    .limit(8);
   const recentContextPacks = await db
     .select({
       id: contextPacks.id,
@@ -124,6 +154,9 @@ export async function getProductSummary(
       contextPacks: contextPackCountRow?.value ?? 0,
     },
     recentKnowledge,
+    openQuestions,
+    conflictAlerts,
+    recentTimeline,
     recentContextPacks,
   };
 }

@@ -124,6 +124,8 @@ Do not duplicate authentication data in a separate profile model unless Context 
 - Context Pack detail supports task outcome capture from Codex, Claude, ChatGPT, or user notes. Outcomes become source records and AI-extracted decision candidates must be reviewed before entering Product Memory.
 - Product Intelligence provides guided, structured product-aware questions over retrieved Product Memory and graph relationships without becoming a generic chat interface.
 - The seeded Nextzen Demo story now covers Progress Reporting, Application Review, Award Management, and Design System with 40+ source-backed memory items, dated history, relationships, and the bulk progress-report approval demo task.
+- Dashboard and daily workflow surfaces now use live Product Memory data, including selected product, module/feature counts, verified memory count, unresolved conflicts, recent sources, recent tasks, recent Context Packs, suggested next actions, and route-level loading/error states.
+- Knowledge and source libraries include basic filters for type, lifecycle, authority, source type, module, and feature.
 - Manual Source Ingestion supports product/module/feature attachment, source type validation, metadata JSON, raw content storage, source detail pages, connected knowledge display, and an extraction handoff shape for the later AI extraction prompt.
 - AI provider abstraction supports server-side text, structured output, and embedding operations with timeout, retry, error handling, malformed response handling, and a Product Memory extraction operation that returns proposed candidates only.
 - AI Knowledge Extraction can run from a raw Source, persist atomic candidates for review, and only write approved candidates into verified Product Memory with source evidence attached.
@@ -170,6 +172,14 @@ Recommended demo path:
 8. Paste an AI or design outcome into the Context Pack detail page to capture decisions back into reviewed Product Memory.
 
 The demo includes six fictional source records: requirements note, design critique note, engineering constraint note, research summary, release note, and design system note. It also includes historical memory for the old 50-record API limit, the later 100-record limit, the rejected persistent toolbar, standardized confirmation modal copy, the mixed-selection issue, and the BulkActionBar accessibility improvement.
+
+## Daily Workflow Surface
+
+After sign-in, `/dashboard` shows the selected product, module and feature coverage, verified Product Memory count, unresolved conflicts, recent sources, recent tasks, recent Context Packs, and suggested next actions.
+
+Product detail pages now act as stronger product homes with Product Graph metrics, feature map, top knowledge categories, open questions, conflict alerts, and recent timeline events. Feature detail pages include a tab-style section bar for overview, knowledge, sources, relationships, timeline, tasks, and Context Packs.
+
+Use `/knowledge` to filter Product Memory by product, module, feature, knowledge type, lifecycle status, and authority. Use `/sources` to filter source evidence by product, module, feature, and source type.
 
 ## Feature Memory Workflow
 

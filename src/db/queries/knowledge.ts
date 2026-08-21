@@ -11,13 +11,68 @@ import {
   knowledgeItems,
   knowledgeRelationships,
   knowledgeSources,
+  modules,
+  products,
   sources,
+  features,
 } from "@/db/schema/index";
 import {
   getLifecycleEventType,
   validateLifecycleTransition,
   type LifecycleStatus,
 } from "@/lib/product-memory/knowledge-model";
+import type { KnowledgeLibraryFilters } from "@/lib/workflow/filters";
+
+export async function getKnowledgeLibrary(
+  userId: string,
+  filters: KnowledgeLibraryFilters = {},
+  db: AppDb = defaultDb,
+) {
+  const conditions = [eq(products.createdBy, userId)];
+
+  if (filters.productId) {
+    conditions.push(eq(knowledgeItems.productId, filters.productId));
+  }
+  if (filters.moduleId) {
+    conditions.push(eq(knowledgeItems.moduleId, filters.moduleId));
+  }
+  if (filters.featureId) {
+    conditions.push(eq(knowledgeItems.featureId, filters.featureId));
+  }
+  if (filters.knowledgeType) {
+    conditions.push(eq(knowledgeItems.knowledgeType, filters.knowledgeType));
+  }
+  if (filters.lifecycleStatus) {
+    conditions.push(eq(knowledgeItems.lifecycleStatus, filters.lifecycleStatus));
+  }
+  if (filters.authority) {
+    conditions.push(eq(knowledgeItems.authority, filters.authority));
+  }
+
+  const rows = await db
+    .select({
+      knowledge: knowledgeItems,
+      productName: products.name,
+      moduleName: modules.name,
+      featureName: features.name,
+    })
+    .from(knowledgeItems)
+    .innerJoin(products, eq(knowledgeItems.productId, products.id))
+    .leftJoin(modules, eq(knowledgeItems.moduleId, modules.id))
+    .leftJoin(features, eq(knowledgeItems.featureId, features.id))
+    .where(and(...conditions))
+    .orderBy(desc(knowledgeItems.updatedAt))
+    .limit(80);
+  const sourceCountMap = await getKnowledgeSourceCountMap(
+    rows.map((row) => row.knowledge.id),
+    db,
+  );
+
+  return rows.map((row) => ({
+    ...row,
+    sourceCount: sourceCountMap.get(row.knowledge.id) ?? 0,
+  }));
+}
 
 export async function createKnowledgeItem(
   input: typeof knowledgeItems.$inferInsert,

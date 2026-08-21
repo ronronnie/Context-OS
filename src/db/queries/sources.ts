@@ -13,6 +13,7 @@ import {
 } from "@/db/schema/index";
 import { buildSourceExtractionInput } from "@/lib/source-ingestion/extraction";
 import type { SourceType } from "@/lib/source-ingestion/source-model";
+import type { SourceLibraryFilters } from "@/lib/workflow/filters";
 
 export async function getSourcesForProduct(
   productId: string,
@@ -30,6 +31,7 @@ export async function getSourcesForProduct(
 
 export async function getSourceIngestionWorkspace(
   userId: string,
+  filters: SourceLibraryFilters = {},
   db: AppDb = defaultDb,
 ) {
   const userProducts = await getProductsForUser(userId, db);
@@ -56,7 +58,9 @@ export async function getSourceIngestionWorkspace(
   return {
     products: graph,
     sources: graph.flatMap((product) =>
-      product.sources.map((source) => ({
+      product.sources.filter((source) =>
+        sourceMatchesFilters(source, filters),
+      ).map((source) => ({
         ...source,
         productName: product.name,
         moduleName:
@@ -68,6 +72,18 @@ export async function getSourceIngestionWorkspace(
       })),
     ).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
   };
+}
+
+function sourceMatchesFilters(
+  source: typeof sources.$inferSelect,
+  filters: SourceLibraryFilters,
+) {
+  return (
+    (!filters.productId || source.productId === filters.productId) &&
+    (!filters.moduleId || source.moduleId === filters.moduleId) &&
+    (!filters.featureId || source.featureId === filters.featureId) &&
+    (!filters.sourceType || source.sourceType === filters.sourceType)
+  );
 }
 
 export async function createSource(
