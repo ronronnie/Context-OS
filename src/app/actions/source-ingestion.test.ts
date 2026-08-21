@@ -85,16 +85,17 @@ describe("source ingestion", () => {
   });
 
   it("keeps seed source data fictional and linked to knowledge evidence", () => {
-    expect(seedSources).toHaveLength(5);
+    expect(seedSources).toHaveLength(6);
     expect(seedSources.map((source) => source.key)).toEqual([
-      "progress-report-approval-requirement",
-      "bulk-review-design-note",
-      "confirmation-modal-design-system",
-      "bulk-workflow-api-constraint",
-      "old-bulk-toolbar-exploration",
+      "progress-reporting-requirements-note",
+      "bulk-review-design-critique-note",
+      "bulk-operations-engineering-constraint-note",
+      "reviewer-research-summary",
+      "nextzen-release-2026-06-note",
+      "design-system-bulk-pattern-note",
     ]);
 
-    const sourceKeys = new Set(seedSources.map((source) => source.key));
+    const sourceKeys: Set<string> = new Set(seedSources.map((source) => source.key));
 
     for (const source of seedSources) {
       expect(source.metadata.fictional).toBe(true);

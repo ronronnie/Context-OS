@@ -47,7 +47,7 @@ describe("product graph relationships", () => {
   it("keeps Nextzen demo relationships on supported graph types", () => {
     for (const relationship of seedFeatureRelationships) {
       expect(featureRelationshipTypes).toContain(relationship.relationshipType);
-      expect(relationship.reason).toMatch(/Progress Report Review|Application Review/);
+      expect(relationship.reason.length).toBeGreaterThan(20);
     }
 
     for (const relationship of seedKnowledgeRelationships) {

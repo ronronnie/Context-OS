@@ -68,7 +68,7 @@ npm run db:migrate
 npm run db:seed
 ```
 
-`db:generate` writes Drizzle migrations under `src/db/migrations`. `db:migrate` applies them to Neon using `DATABASE_URL`. `db:seed` creates fictional Nextzen Demo data.
+`db:generate` writes Drizzle migrations under `src/db/migrations`. `db:migrate` applies them to Neon using `DATABASE_URL`. `db:seed` creates fictional Nextzen Demo data for the guided MVP story.
 
 ## Database Architecture
 
@@ -123,6 +123,7 @@ Do not duplicate authentication data in a separate profile model unless Context 
 - Context Pack detail supports Codex, Claude, ChatGPT, and plain Markdown export modes with copy, download, and live preview.
 - Context Pack detail supports task outcome capture from Codex, Claude, ChatGPT, or user notes. Outcomes become source records and AI-extracted decision candidates must be reviewed before entering Product Memory.
 - Product Intelligence provides guided, structured product-aware questions over retrieved Product Memory and graph relationships without becoming a generic chat interface.
+- The seeded Nextzen Demo story now covers Progress Reporting, Application Review, Award Management, and Design System with 40+ source-backed memory items, dated history, relationships, and the bulk progress-report approval demo task.
 - Manual Source Ingestion supports product/module/feature attachment, source type validation, metadata JSON, raw content storage, source detail pages, connected knowledge display, and an extraction handoff shape for the later AI extraction prompt.
 - AI provider abstraction supports server-side text, structured output, and embedding operations with timeout, retry, error handling, malformed response handling, and a Product Memory extraction operation that returns proposed candidates only.
 - AI Knowledge Extraction can run from a raw Source, persist atomic candidates for review, and only write approved candidates into verified Product Memory with source evidence attached.
@@ -145,6 +146,30 @@ Feature statuses are:
 - `planned`
 - `deprecated`
 - `archived`
+
+## Nextzen Demo Walkthrough
+
+Run `npm run db:migrate` and `npm run db:seed` after configuring `.env.local`. The seed creates `Nextzen Demo`, a fictional grants and program management platform with four modules:
+
+- Progress Reporting
+- Application Review
+- Award Management
+- Design System
+
+The seeded story is centered on the task `Add bulk approval to Progress Report Review.` It is designed to prove the Context OS loop: feature-aware memory, retrieval, useful Context Pack output, then decision capture back into memory.
+
+Recommended demo path:
+
+1. Open `/products` and inspect `Nextzen Demo`.
+2. Open Progress Reporting -> Review Progress Report to see related memory and timeline context.
+3. Open Application Review -> Bulk Review to see the existing bulk action pattern.
+4. Open Design System -> BulkActionBar and ConfirmationModal to inspect reusable component memory.
+5. Open `/context-packs` or `/tasks` and find `Add bulk approval to Progress Report Review.`
+6. Confirm the seeded Context Pack includes approval behavior, approval permissions, compliance restrictions, the 100-record API limit, Application Review bulk action pattern, BulkActionBar, ConfirmationModal, and the rejected persistent toolbar.
+7. Use `/intelligence` to ask what will be affected if Progress Report Review changes.
+8. Paste an AI or design outcome into the Context Pack detail page to capture decisions back into reviewed Product Memory.
+
+The demo includes six fictional source records: requirements note, design critique note, engineering constraint note, research summary, release note, and design system note. It also includes historical memory for the old 50-record API limit, the later 100-record limit, the rejected persistent toolbar, standardized confirmation modal copy, the mixed-selection issue, and the BulkActionBar accessibility improvement.
 
 ## Feature Memory Workflow
 

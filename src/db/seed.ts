@@ -16,6 +16,7 @@ import {
 import {
   seedFeatures,
   seedFeatureRelationships,
+  seedDemoTask,
   seedKnowledge,
   seedKnowledgeRelationships,
   seedModules,
@@ -160,8 +161,12 @@ async function main() {
         authority: knowledgeSeed.authority,
         confidence: knowledgeSeed.confidence,
         lifecycleStatus: knowledgeSeed.lifecycleStatus,
+        validFrom: knowledgeSeed.validFrom ? new Date(knowledgeSeed.validFrom) : null,
+        validUntil: knowledgeSeed.validUntil ? new Date(knowledgeSeed.validUntil) : null,
         lastVerifiedAt:
-          knowledgeSeed.lifecycleStatus === "verified" ? new Date() : null,
+          knowledgeSeed.lifecycleStatus === "verified" || knowledgeSeed.lifecycleStatus === "outdated"
+            ? new Date()
+            : null,
         createdBy: seedUser.id,
       })
       .onConflictDoUpdate({
@@ -172,6 +177,12 @@ async function main() {
           authority: knowledgeSeed.authority,
           confidence: knowledgeSeed.confidence,
           lifecycleStatus: knowledgeSeed.lifecycleStatus,
+          validFrom: knowledgeSeed.validFrom ? new Date(knowledgeSeed.validFrom) : null,
+          validUntil: knowledgeSeed.validUntil ? new Date(knowledgeSeed.validUntil) : null,
+          lastVerifiedAt:
+            knowledgeSeed.lifecycleStatus === "verified" || knowledgeSeed.lifecycleStatus === "outdated"
+              ? new Date()
+              : null,
           updatedAt: new Date(),
         },
       })
@@ -227,25 +238,24 @@ async function main() {
     });
   }
 
-  const progressReviewFeatureId = featureByKey.get("review-progress-report");
+  const progressReviewFeatureId = featureByKey.get(seedDemoTask.primaryFeatureKey);
 
   const [task] = await db
     .insert(tasks)
     .values({
       productId: product.id,
       primaryFeatureId: progressReviewFeatureId,
-      title: "Design bulk approval for progress reports",
-      description:
-        "Generate a source-backed Context Pack before changing approval workflows.",
-      status: "ready",
+      title: seedDemoTask.title,
+      description: seedDemoTask.description,
+      status: seedDemoTask.status,
       createdBy: seedUser.id,
     })
     .onConflictDoUpdate({
       target: [tasks.productId, tasks.title],
       set: {
-        description:
-          "Generate a source-backed Context Pack before changing approval workflows.",
-        status: "ready",
+        primaryFeatureId: progressReviewFeatureId,
+        description: seedDemoTask.description,
+        status: seedDemoTask.status,
         updatedAt: new Date(),
       },
     })
@@ -257,23 +267,36 @@ async function main() {
       productId: product.id,
       taskId: task.id,
       version: 1,
-      generatedContent:
-        "Use verified approval permissions, unresolved correction constraints, bulk selection patterns, and rejected toolbar history before designing bulk approval.",
-      metadata: { destination: "codex", fictional: true },
+      generatedContent: seedDemoTask.contextPackContent,
+      metadata: {
+        destination: "codex",
+        fictional: true,
+        seededStory: "bulk-progress-report-approval",
+        taskIntent: "design",
+      },
       createdBy: seedUser.id,
     })
     .onConflictDoUpdate({
       target: [contextPacks.taskId, contextPacks.version],
       set: {
-        generatedContent:
-          "Use verified approval permissions, unresolved correction constraints, bulk selection patterns, and rejected toolbar history before designing bulk approval.",
-        metadata: { destination: "codex", fictional: true },
+        generatedContent: seedDemoTask.contextPackContent,
+        metadata: {
+          destination: "codex",
+          fictional: true,
+          seededStory: "bulk-progress-report-approval",
+          taskIntent: "design",
+        },
         createdBy: seedUser.id,
       },
     })
     .returning();
 
-  for (const id of Array.from(knowledgeByTitle.values()).slice(0, 5)) {
+  for (const title of seedDemoTask.contextPackKnowledgeTitles) {
+    const id = knowledgeByTitle.get(title);
+    if (!id) {
+      throw new Error(`Missing seeded Context Pack memory ${title}`);
+    }
+
     await db.insert(contextPackItems).values({
       contextPackId: pack.id,
       knowledgeItemId: id,
