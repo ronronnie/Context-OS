@@ -1,4 +1,5 @@
-import { db } from "@/db";
+import * as nextEnv from "@next/env";
+
 import {
   contextPackItems,
   contextPacks,
@@ -13,6 +14,7 @@ import {
   tasks,
   user,
 } from "@/db/schema/index";
+import type { AppDb } from "@/db";
 import {
   seedFeatures,
   seedFeatureRelationships,
@@ -25,7 +27,12 @@ import {
   seedUser,
 } from "@/db/seed-data";
 
+const { loadEnvConfig } = nextEnv;
+loadEnvConfig(process.cwd());
+
 async function main() {
+  const { db } = await import("@/db");
+
   await db
     .insert(user)
     .values({
@@ -203,6 +210,7 @@ async function main() {
 
   for (const relationshipSeed of seedKnowledgeRelationships) {
     await createKnowledgeRelationship(
+      db,
       product.id,
       knowledgeByTitle,
       relationshipSeed.fromTitle,
@@ -309,6 +317,7 @@ async function main() {
 }
 
 async function createKnowledgeRelationship(
+  db: AppDb,
   productId: string,
   knowledgeByTitle: Map<string, string>,
   fromTitle: string,
