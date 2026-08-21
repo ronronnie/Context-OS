@@ -119,6 +119,7 @@ Do not duplicate authentication data in a separate profile model unless Context 
 - Knowledge detail pages show full body, source evidence, editable relationships, lifecycle history, valid dates, and created/updated metadata.
 - Semantic retrieval uses pgvector in Neon Postgres plus hybrid ranking across feature proximity, Product Graph relationships, authority, lifecycle, recency, and task intent.
 - Embedding sync is wired into verified Product Memory creation, verified updates, lifecycle transitions, and approved extraction candidates.
+- Task creation now generates versioned Context Packs from retrieved Product Memory, stores included items, and preserves older regenerated outputs.
 - Manual Source Ingestion supports product/module/feature attachment, source type validation, metadata JSON, raw content storage, source detail pages, connected knowledge display, and an extraction handoff shape for the later AI extraction prompt.
 - AI provider abstraction supports server-side text, structured output, and embedding operations with timeout, retry, error handling, malformed response handling, and a Product Memory extraction operation that returns proposed candidates only.
 - AI Knowledge Extraction can run from a raw Source, persist atomic candidates for review, and only write approved candidates into verified Product Memory with source evidence attached.
@@ -215,6 +216,32 @@ Only trusted Product Memory is embedded automatically. Verified knowledge is emb
 Retrieval is hybrid. Vector similarity is only the first candidate source. Final ranking also considers primary feature association, module proximity, feature relationships, knowledge relationships, authority, lifecycle status, verification recency, and task intent. Current canonical memory normally ranks above obsolete or low-authority memory, while historical rejected approaches can still rank when they are relevant to changing an existing pattern.
 
 Development diagnostics include semantic score, authority adjustment, relationship adjustment, lifecycle adjustment, proximity adjustment, recency adjustment, final score, and the inclusion reason. These diagnostics are returned by the service in development mode or when explicitly requested, and are not exposed in production UI by default.
+
+## Task And Context Pack Workflow
+
+Open `/tasks` to create a task with title, description, product, optional primary feature, and task intent. Task creation calls `retrieveProductContext()` with the selected product and feature boundary, then compiles a Context Pack.
+
+Generated packs include:
+
+- Task
+- Product / Module / Feature
+- Current Behavior
+- Relevant Product Rules
+- Permissions
+- UX Patterns
+- Technical Constraints
+- Related Features
+- Relevant Components
+- Decisions
+- Rejected Approaches
+- Known Issues
+- Source Evidence
+- Open Questions
+- Suggested Prompt
+
+Context Packs are saved in `context_packs` and their included Product Memory rows are saved in `context_pack_items` with relevance scores and inclusion reasons. Regeneration creates a new `version` for the same task and keeps prior pack outputs available as historical artifacts.
+
+The Context Pack detail view lives at `/products/[productId]/context-packs/[contextPackId]`. It shows pack metadata, included memory, source evidence, regeneration controls, and a copy-friendly compiled pack body for Codex, Claude, ChatGPT, or similar AI tools.
 
 ## AI Provider Architecture
 

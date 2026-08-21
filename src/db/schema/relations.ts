@@ -309,6 +309,10 @@ export const contextPackRelations = relations(contextPacks, ({ one, many }) => (
     fields: [contextPacks.productId],
     references: [products.id],
   }),
+  creator: one(user, {
+    fields: [contextPacks.createdBy],
+    references: [user.id],
+  }),
   items: many(contextPackItems),
 }));
 

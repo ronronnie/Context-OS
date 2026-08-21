@@ -256,16 +256,19 @@ async function main() {
     .values({
       productId: product.id,
       taskId: task.id,
+      version: 1,
       generatedContent:
         "Use verified approval permissions, unresolved correction constraints, bulk selection patterns, and rejected toolbar history before designing bulk approval.",
       metadata: { destination: "codex", fictional: true },
+      createdBy: seedUser.id,
     })
     .onConflictDoUpdate({
-      target: [contextPacks.taskId],
+      target: [contextPacks.taskId, contextPacks.version],
       set: {
         generatedContent:
           "Use verified approval permissions, unresolved correction constraints, bulk selection patterns, and rejected toolbar history before designing bulk approval.",
         metadata: { destination: "codex", fictional: true },
+        createdBy: seedUser.id,
       },
     })
     .returning();

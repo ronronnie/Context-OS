@@ -417,13 +417,16 @@ export const contextPacks = pgTable("context_packs", {
   id: uuid("id").defaultRandom().primaryKey(),
   taskId: uuid("task_id").notNull().references(() => tasks.id),
   productId: uuid("product_id").notNull().references(() => products.id),
+  version: integer("version").notNull().default(1),
   generatedContent: text("generated_content").notNull(),
   metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}).notNull(),
+  createdBy: text("created_by").references(() => user.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
-  uniqueIndex("context_packs_task_id_unique").on(table.taskId),
+  uniqueIndex("context_packs_task_id_version_unique").on(table.taskId, table.version),
   index("context_packs_task_id_idx").on(table.taskId),
   index("context_packs_product_id_idx").on(table.productId),
+  index("context_packs_created_by_idx").on(table.createdBy),
 ]);
 
 export const contextPackItems = pgTable("context_pack_items", {

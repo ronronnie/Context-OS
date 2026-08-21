@@ -64,6 +64,13 @@
       "when": 1787320864886,
       "tag": "0008_open_nightcrawler",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787321475721,
+      "tag": "0009_clear_stryfe",
+      "breakpoints": true
     }
   ]
 }

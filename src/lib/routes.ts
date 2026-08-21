@@ -34,3 +34,7 @@ export function sourceExtractionRoute(
 ) {
   return `${sourceRoute(productId, sourceId)}/extractions/${extractionId}`;
 }
+
+export function contextPackRoute(productId: string, contextPackId: string) {
+  return `/products/${productId}/context-packs/${contextPackId}`;
+}
