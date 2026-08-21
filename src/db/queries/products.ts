@@ -9,6 +9,7 @@ import {
   knowledgeEvents,
   knowledgeItems,
   modules,
+  productAuditEvents,
   products,
   tasks,
 } from "@/db/schema/index";
@@ -129,6 +130,12 @@ export async function getProductSummary(
     .where(eq(knowledgeEvents.productId, productId))
     .orderBy(desc(knowledgeEvents.createdAt))
     .limit(8);
+  const recentAuditTimeline = await db
+    .select()
+    .from(productAuditEvents)
+    .where(eq(productAuditEvents.productId, productId))
+    .orderBy(desc(productAuditEvents.createdAt))
+    .limit(8);
   const recentContextPacks = await db
     .select({
       id: contextPacks.id,
@@ -156,7 +163,22 @@ export async function getProductSummary(
     recentKnowledge,
     openQuestions,
     conflictAlerts,
-    recentTimeline,
+    recentTimeline: [
+      ...recentTimeline.map((event) => ({
+        id: event.id,
+        eventType: event.eventType,
+        title: event.title,
+        note: event.note,
+        createdAt: event.createdAt,
+      })),
+      ...recentAuditTimeline.map((event) => ({
+        id: event.id,
+        eventType: event.eventType,
+        title: event.title,
+        note: event.summary,
+        createdAt: event.createdAt,
+      })),
+    ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 8),
     recentContextPacks,
   };
 }

@@ -4,6 +4,7 @@ import { extractProductKnowledge } from "@/ai";
 import type { AIProvider } from "@/ai/provider";
 import type { ExistingFeatureContext } from "@/ai/prompts/product-knowledge-extraction";
 import { db as defaultDb, type AppDb } from "@/db";
+import { recordProductAuditEvent } from "@/db/queries/audit";
 import { trySyncKnowledgeEmbedding } from "@/db/queries/embeddings";
 import { getFeatureKnowledge } from "@/db/queries/features";
 import { getSourceDetail } from "@/db/queries/sources";
@@ -63,6 +64,25 @@ export async function createSourceExtractionForReview(
       createdBy: userId,
     })
     .returning();
+
+  await recordProductAuditEvent(
+    {
+      productId,
+      moduleId: detail.source.moduleId,
+      featureId: detail.source.featureId,
+      sourceId,
+      sourceExtractionId: run.id,
+      eventType: "extraction_run",
+      title: `Extraction run: ${detail.source.name}`,
+      summary: `${extraction.candidates.length} candidates created, ${extraction.skippedClaims.length} claims skipped.`,
+      metadata: {
+        candidateCount: extraction.candidates.length,
+        skippedClaimCount: extraction.skippedClaims.length,
+      },
+    },
+    userId,
+    db,
+  );
 
   if (extraction.candidates.length) {
     const candidates = await db.insert(sourceExtractionCandidates).values(
@@ -301,6 +321,28 @@ async function approveExtractionCandidateInternal(
     })
     .where(eq(sourceExtractionCandidates.id, candidateId));
 
+  await recordProductAuditEvent(
+    {
+      productId,
+      moduleId: candidate.moduleId,
+      featureId: candidate.featureId,
+      sourceId,
+      knowledgeItemId: knowledge.id,
+      sourceExtractionId: extractionId,
+      sourceExtractionCandidateId: candidateId,
+      eventType: "candidate_approved",
+      title: `Candidate approved: ${knowledge.title}`,
+      summary: "AI extraction candidate became verified Product Memory.",
+      metadata: {
+        authority: edits.authority,
+        confidence: edits.confidence,
+        knowledgeType: edits.knowledgeType,
+      },
+    },
+    userId,
+    db,
+  );
+
   await trySyncKnowledgeEmbedding(knowledge.id, productId, userId, db);
 
   return knowledge;
@@ -390,6 +432,27 @@ export async function resolveExtractionConflict(
       },
     })
     .where(eq(knowledgeConflicts.id, conflict.id));
+
+  await recordProductAuditEvent(
+    {
+      productId,
+      sourceId,
+      knowledgeItemId: approvedKnowledgeId,
+      sourceExtractionId: extractionId,
+      sourceExtractionCandidateId: conflict.candidateId,
+      conflictId,
+      eventType: "conflict_resolved",
+      title: `Conflict resolved: ${resolution.replaceAll("_", " ")}`,
+      summary: conflict.summary,
+      metadata: {
+        resolution,
+        existingKnowledgeItemId: conflict.existingKnowledgeItemId,
+        approvedKnowledgeId,
+      },
+    },
+    userId,
+    db,
+  );
 }
 
 export async function approveAllPendingExtractionCandidates(
@@ -475,6 +538,28 @@ export async function rejectExtractionCandidate(
       ),
     )
     .returning();
+
+  if (rows[0]) {
+    await recordProductAuditEvent(
+      {
+        productId,
+        moduleId: rows[0].moduleId,
+        featureId: rows[0].featureId,
+        sourceId,
+        sourceExtractionId: extractionId,
+        sourceExtractionCandidateId: candidateId,
+        eventType: "candidate_rejected",
+        title: `Candidate rejected: ${rows[0].title}`,
+        summary: "AI extraction candidate was rejected during human review.",
+        metadata: {
+          knowledgeType: rows[0].knowledgeType,
+          confidence: rows[0].confidence,
+        },
+      },
+      userId,
+      db,
+    );
+  }
 
   return rows[0] ?? null;
 }

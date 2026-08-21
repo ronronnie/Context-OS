@@ -7,12 +7,17 @@ import { ContextPackExportPanel } from "@/components/context-pack-export-panel";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { SectionHeader } from "@/components/section-header";
-import { SourceChip } from "@/components/source-chip";
+import { SourceEvidenceCard } from "@/components/source-evidence-card";
 import { StatusBadge } from "@/components/status-badge";
+import { TrustLabel } from "@/components/trust-label";
 import { Button } from "@/components/ui/button";
 import { getContextPackDetail } from "@/db/queries";
 import { requireUser } from "@/lib/auth/session";
 import { taskIntentOptions } from "@/lib/context-packs/forms";
+import {
+  buildEvidenceDisplay,
+  getTrustLabel,
+} from "@/lib/evidence/evidence-model";
 import { productRoute, taskOutcomeRoute } from "@/lib/routes";
 
 export default async function ContextPackDetailPage({
@@ -82,11 +87,20 @@ export default async function ContextPackDetailPage({
       relevanceScore: row.item.relevanceScore,
       reasonForInclusion: row.item.reasonForInclusion,
       evidence: (evidenceByKnowledgeId.get(row.knowledgeItem.id) ?? []).map(
-        (source) => ({
-          name: source.name,
-          sourceType: source.sourceType,
-          url: source.url,
-        }),
+        (source) => {
+          const evidence = buildEvidenceDisplay(
+            source,
+            row.knowledgeItem.authority,
+          );
+
+          return {
+            name: evidence.sourceName,
+            sourceType: evidence.sourceType,
+            url: evidence.sourceUrl,
+            createdAt: evidence.createdAt.toLocaleDateString(),
+            evidenceText: evidence.evidenceText,
+          };
+        },
       ),
     })),
   };
@@ -266,6 +280,12 @@ export default async function ContextPackDetailPage({
                   <article className="p-4" key={row.item.knowledgeItemId}>
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge status={row.knowledgeItem.lifecycleStatus} />
+                      <TrustLabel
+                        label={getTrustLabel({
+                          authority: row.knowledgeItem.authority,
+                          lifecycleStatus: row.knowledgeItem.lifecycleStatus,
+                        })}
+                      />
                       <span className="text-xs text-[var(--muted)]">
                         {row.item.relevanceScore ?? 0}% relevance
                       </span>
@@ -295,10 +315,38 @@ export default async function ContextPackDetailPage({
           <section className="rounded-md border border-[var(--border)] bg-[var(--panel)]">
             <SectionHeader title="Source evidence" />
             {detail.evidence.length ? (
-              <div className="flex flex-wrap gap-2 p-4">
-                {detail.evidence.map((row) => (
-                  <SourceChip key={`${row.knowledgeItemId}-${row.source.id}`} label={row.source.name} />
-                ))}
+              <div className="space-y-4 p-4">
+                {detail.items.map((item) => {
+                  const sources = evidenceByKnowledgeId.get(item.knowledgeItem.id) ?? [];
+
+                  if (!sources.length) {
+                    return null;
+                  }
+
+                  return (
+                    <div
+                      className="space-y-2 rounded-md border border-[var(--border)] bg-[var(--panel-subtle)] p-3"
+                      key={item.knowledgeItem.id}
+                    >
+                      <div>
+                        <h3 className="text-sm font-semibold">
+                          {item.knowledgeItem.title}
+                        </h3>
+                        <p className="mt-1 text-xs text-[var(--muted)]">
+                          Evidence for this included Product Memory claim.
+                        </p>
+                      </div>
+                      {sources.map((source) => (
+                        <SourceEvidenceCard
+                          fallbackAuthority={item.knowledgeItem.authority}
+                          key={`${item.knowledgeItem.id}-${source.id}`}
+                          lifecycleStatus={item.knowledgeItem.lifecycleStatus}
+                          source={source}
+                        />
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="p-4">

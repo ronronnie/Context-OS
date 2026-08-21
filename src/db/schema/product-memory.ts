@@ -106,6 +106,18 @@ export const knowledgeConflictResolutionEnum = pgEnum(
   ],
 );
 
+export const productAuditEventTypeEnum = pgEnum("product_audit_event_type", [
+  "source_created",
+  "extraction_run",
+  "candidate_approved",
+  "candidate_rejected",
+  "knowledge_edited",
+  "lifecycle_changed",
+  "conflict_resolved",
+  "context_pack_generated",
+  "decision_captured",
+]);
+
 export const products = pgTable("products", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
@@ -549,6 +561,66 @@ export const contextPackItems = pgTable("context_pack_items", {
   index("context_pack_items_knowledge_item_id_idx").on(table.knowledgeItemId),
 ]);
 
+export const productAuditEvents = pgTable("product_audit_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  productId: uuid("product_id").notNull().references(() => products.id, {
+    onDelete: "cascade",
+  }),
+  moduleId: uuid("module_id").references(() => modules.id, {
+    onDelete: "set null",
+  }),
+  featureId: uuid("feature_id").references(() => features.id, {
+    onDelete: "set null",
+  }),
+  sourceId: uuid("source_id").references(() => sources.id, {
+    onDelete: "set null",
+  }),
+  knowledgeItemId: uuid("knowledge_item_id").references(() => knowledgeItems.id, {
+    onDelete: "set null",
+  }),
+  taskId: uuid("task_id").references(() => tasks.id, {
+    onDelete: "set null",
+  }),
+  contextPackId: uuid("context_pack_id").references(() => contextPacks.id, {
+    onDelete: "set null",
+  }),
+  outcomeId: uuid("outcome_id").references(() => taskOutcomes.id, {
+    onDelete: "set null",
+  }),
+  sourceExtractionId: uuid("source_extraction_id").references(
+    () => sourceExtractions.id,
+    { onDelete: "set null" },
+  ),
+  sourceExtractionCandidateId: uuid("source_extraction_candidate_id").references(
+    () => sourceExtractionCandidates.id,
+    { onDelete: "set null" },
+  ),
+  decisionCaptureCandidateId: uuid("decision_capture_candidate_id").references(
+    () => decisionCaptureCandidates.id,
+    { onDelete: "set null" },
+  ),
+  conflictId: uuid("conflict_id").references(() => knowledgeConflicts.id, {
+    onDelete: "set null",
+  }),
+  eventType: productAuditEventTypeEnum("event_type").notNull(),
+  title: text("title").notNull(),
+  summary: text("summary").notNull().default(""),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}).notNull(),
+  createdBy: text("created_by").notNull().references(() => user.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("product_audit_events_product_id_idx").on(table.productId),
+  index("product_audit_events_module_id_idx").on(table.moduleId),
+  index("product_audit_events_feature_id_idx").on(table.featureId),
+  index("product_audit_events_source_id_idx").on(table.sourceId),
+  index("product_audit_events_knowledge_item_id_idx").on(table.knowledgeItemId),
+  index("product_audit_events_task_id_idx").on(table.taskId),
+  index("product_audit_events_context_pack_id_idx").on(table.contextPackId),
+  index("product_audit_events_event_type_idx").on(table.eventType),
+  index("product_audit_events_created_by_idx").on(table.createdBy),
+  index("product_audit_events_created_at_idx").on(table.createdAt),
+]);
+
 export type Product = typeof products.$inferSelect;
 export type Module = typeof modules.$inferSelect;
 export type Feature = typeof features.$inferSelect;
@@ -562,3 +634,4 @@ export type FeatureRelationship = typeof featureRelationships.$inferSelect;
 export type KnowledgeRelationship = typeof knowledgeRelationships.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type ContextPack = typeof contextPacks.$inferSelect;
+export type ProductAuditEvent = typeof productAuditEvents.$inferSelect;

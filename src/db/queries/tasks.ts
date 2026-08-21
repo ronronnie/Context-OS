@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 
 import { db as defaultDb, type AppDb } from "@/db";
+import { recordProductAuditEvent } from "@/db/queries/audit";
 import { assertProductOwnership } from "@/db/queries/products";
 import {
   contextPackItems,
@@ -374,6 +375,25 @@ async function generateContextPackForTask(
       updatedAt: new Date(),
     })
     .where(eq(tasks.id, taskId));
+
+  await recordProductAuditEvent(
+    {
+      productId,
+      moduleId: productModule?.id ?? null,
+      featureId: feature?.id ?? null,
+      taskId,
+      contextPackId: pack.id,
+      eventType: "context_pack_generated",
+      title: `Context Pack v${pack.version} generated`,
+      summary: `${retrievalResult.results.length} Product Memory items were compiled for ${task.title}.`,
+      metadata: {
+        taskIntent,
+        includedKnowledgeIds: knowledgeIds,
+      },
+    },
+    userId,
+    db,
+  );
 
   return pack;
 }

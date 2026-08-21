@@ -53,6 +53,8 @@ export type ContextPackExportItem = {
     name: string;
     sourceType: string;
     url: string | null;
+    createdAt: string;
+    evidenceText: string;
   }>;
 };
 
@@ -243,7 +245,7 @@ function renderItem(item: ContextPackExportItem) {
         ? " REJECTED/HISTORICAL"
         : "";
   const evidence = item.evidence.length
-    ? item.evidence.map((source) => source.name).join("; ")
+    ? item.evidence.map(renderEvidenceReference).join("; ")
     : "No linked source evidence.";
 
   return [
@@ -316,6 +318,13 @@ function renderAllEvidence(items: ContextPackExportItem[]) {
   }
 
   return Array.from(evidence.values())
-    .map((source) => `- ${source.name} (${source.sourceType})${source.url ? `: ${source.url}` : ""}`)
+    .map((source) => `- ${renderEvidenceReference(source)}`)
     .join("\n");
+}
+
+function renderEvidenceReference(source: ContextPackExportItem["evidence"][number]) {
+  const url = source.url ? `, ${source.url}` : "";
+  const excerpt = source.evidenceText ? ` Excerpt: ${source.evidenceText}` : "";
+
+  return `${source.name} (${source.sourceType}, created ${source.createdAt}${url}).${excerpt}`;
 }

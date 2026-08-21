@@ -151,6 +151,37 @@ export default async function SourceDetailPage({
               </pre>
             </div>
           </section>
+
+          <section className="rounded-md border border-[var(--border)] bg-[var(--panel)]">
+            <SectionHeader title="Audit trail" />
+            {detail.auditTrail.length ? (
+              <div className="divide-y divide-[var(--border)]">
+                {detail.auditTrail.map((event) => (
+                  <div className="p-4" key={event.id}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-md bg-[var(--panel-subtle)] px-2 py-1 text-xs font-medium">
+                        {event.eventType.replaceAll("_", " ")}
+                      </span>
+                      <span className="text-xs text-[var(--muted)]">
+                        {event.createdAt.toLocaleString()}
+                      </span>
+                    </div>
+                    <h2 className="mt-2 text-sm font-semibold">{event.title}</h2>
+                    <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                      {event.summary || "No audit summary recorded."}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4">
+                <EmptyState
+                  title="No audit events yet"
+                  description="Source creation and extraction review events will appear here."
+                />
+              </div>
+            )}
+          </section>
         </div>
 
         <div className="space-y-6">

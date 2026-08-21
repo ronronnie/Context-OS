@@ -55,7 +55,9 @@ describe("context pack compiler", () => {
     expect(pack).toContain("## Task");
     expect(pack).toContain("## Permissions");
     expect(pack).toContain("Approval permissions are role-limited");
-    expect(pack).toContain("Evidence: Progress report approval requirement");
+    expect(pack).toContain(
+      "Evidence: Progress report approval requirement (prd, created",
+    );
     expect(pack).toContain("## Rejected Approaches");
     expect(pack).toContain("REJECTED/HISTORICAL");
     expect(pack).toContain("## Suggested Prompt");

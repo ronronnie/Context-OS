@@ -13,14 +13,16 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { RelationshipChip } from "@/components/relationship-chip";
 import { SectionHeader } from "@/components/section-header";
-import { SourceChip } from "@/components/source-chip";
+import { SourceEvidenceCard } from "@/components/source-evidence-card";
 import { StatusBadge } from "@/components/status-badge";
+import { TrustLabel } from "@/components/trust-label";
 import { Button } from "@/components/ui/button";
 import {
   getKnowledgeItemDetail,
   getSourcesForProduct,
 } from "@/db/queries";
 import { requireUser } from "@/lib/auth/session";
+import { getTrustLabel } from "@/lib/evidence/evidence-model";
 import {
   authorityOptions,
   getKnowledgeTypeLabel,
@@ -127,6 +129,12 @@ export default async function KnowledgeDetailPage({
             <div className="space-y-4 p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge status={detail.knowledge.lifecycleStatus} />
+                <TrustLabel
+                  label={getTrustLabel({
+                    authority: detail.knowledge.authority,
+                    lifecycleStatus: detail.knowledge.lifecycleStatus,
+                  })}
+                />
                 <span className="text-sm text-[var(--muted)]">
                   {detail.knowledge.authority} authority
                 </span>
@@ -251,34 +259,13 @@ export default async function KnowledgeDetailPage({
             <SectionHeader title="Source evidence" />
             {detail.sources.length ? (
               <div className="space-y-3 p-4">
-                <div className="flex flex-wrap gap-2">
-                  {detail.sources.map((source) => (
-                    <SourceChip key={source.id} label={source.name} />
-                  ))}
-                </div>
                 {detail.sources.map((source) => (
-                  <article
-                    className="rounded-md border border-[var(--border)] bg-white p-3"
+                  <SourceEvidenceCard
+                    fallbackAuthority={detail.knowledge.authority}
                     key={source.id}
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-md bg-[var(--panel-subtle)] px-2 py-1 text-xs font-medium">
-                        {source.sourceType}
-                      </span>
-                      {source.url ? (
-                        <a className="text-xs text-[var(--accent-strong)]" href={source.url}>
-                          {source.url}
-                        </a>
-                      ) : null}
-                    </div>
-                    <h3 className="mt-2 text-sm font-medium">{source.name}</h3>
-                    <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-                      {source.rawContent || "No raw content stored."}
-                    </p>
-                    <pre className="mt-2 overflow-auto rounded-md bg-[var(--panel-subtle)] p-2 text-xs text-[var(--muted-strong)]">
-                      {JSON.stringify(source.metadata, null, 2)}
-                    </pre>
-                  </article>
+                    lifecycleStatus={detail.knowledge.lifecycleStatus}
+                    source={source}
+                  />
                 ))}
               </div>
             ) : (

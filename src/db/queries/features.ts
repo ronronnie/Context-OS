@@ -12,6 +12,7 @@ import {
   knowledgeItems,
   knowledgeSources,
   modules,
+  productAuditEvents,
   sources,
   tasks,
 } from "@/db/schema/index";
@@ -216,6 +217,16 @@ export async function getFeatureWorkspace(
     .from(knowledgeEvents)
     .where(eq(knowledgeEvents.featureId, featureId))
     .orderBy(desc(knowledgeEvents.createdAt));
+  const auditEvents = await db
+    .select()
+    .from(productAuditEvents)
+    .where(
+      and(
+        eq(productAuditEvents.productId, productId),
+        eq(productAuditEvents.featureId, featureId),
+      ),
+    )
+    .orderBy(desc(productAuditEvents.createdAt));
 
   return {
     product,
@@ -233,7 +244,32 @@ export async function getFeatureWorkspace(
     tasks: featureTasks,
     contextPacks: packs.filter((pack) => taskIds.has(pack.taskId)),
     timeline: [
-      ...events,
+      ...events.map((event) => ({
+        id: event.id,
+        productId: event.productId,
+        featureId: event.featureId,
+        knowledgeItemId: event.knowledgeItemId,
+        eventType: event.eventType,
+        fromLifecycleStatus: event.fromLifecycleStatus,
+        toLifecycleStatus: event.toLifecycleStatus,
+        title: event.title,
+        note: event.note,
+        createdBy: event.createdBy,
+        createdAt: event.createdAt,
+      })),
+      ...auditEvents.map((event) => ({
+        id: event.id,
+        productId: event.productId,
+        featureId: event.featureId,
+        knowledgeItemId: event.knowledgeItemId,
+        eventType: event.eventType,
+        fromLifecycleStatus: null,
+        toLifecycleStatus: null,
+        title: event.title,
+        note: event.summary,
+        createdBy: event.createdBy,
+        createdAt: event.createdAt,
+      })),
       ...knowledge
         .filter((item) => events.every((event) => event.knowledgeItemId !== item.id))
         .map((item) => ({

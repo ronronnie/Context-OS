@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 
 import { db as defaultDb, type AppDb } from "@/db";
+import { recordProductAuditEvent } from "@/db/queries/audit";
 import {
   isKnowledgeEmbeddable,
   trySyncKnowledgeEmbedding,
@@ -256,6 +257,29 @@ export async function updateFeatureKnowledgeItem(
     createdBy: userId,
   });
 
+  await recordProductAuditEvent(
+    {
+      productId,
+      moduleId: updated.moduleId,
+      featureId,
+      knowledgeItemId,
+      eventType: existing.lifecycleStatus === nextStatus
+        ? "knowledge_edited"
+        : "lifecycle_changed",
+      title: updated.title,
+      summary: existing.lifecycleStatus === nextStatus
+        ? "Knowledge item edited manually."
+        : `Lifecycle changed from ${existing.lifecycleStatus} to ${nextStatus}.`,
+      metadata: {
+        fromLifecycleStatus: existing.lifecycleStatus,
+        toLifecycleStatus: nextStatus,
+        sourceIds: input.sourceIds ?? [],
+      },
+    },
+    userId,
+    db,
+  );
+
   if (isKnowledgeEmbeddable(updated)) {
     await trySyncKnowledgeEmbedding(updated.id, productId, userId, db);
   }
@@ -311,6 +335,24 @@ export async function transitionKnowledgeLifecycle(
     note: `Lifecycle changed from ${existing.lifecycleStatus} to ${targetStatus}.`,
     createdBy: userId,
   });
+
+  await recordProductAuditEvent(
+    {
+      productId,
+      moduleId: updated.moduleId,
+      featureId,
+      knowledgeItemId,
+      eventType: "lifecycle_changed",
+      title: existing.title,
+      summary: `Lifecycle changed from ${existing.lifecycleStatus} to ${targetStatus}.`,
+      metadata: {
+        fromLifecycleStatus: existing.lifecycleStatus,
+        toLifecycleStatus: targetStatus,
+      },
+    },
+    userId,
+    db,
+  );
 
   if (isKnowledgeEmbeddable(updated)) {
     await trySyncKnowledgeEmbedding(updated.id, productId, userId, db);

@@ -1,4 +1,5 @@
 export * from "./authorization";
+export * from "./audit";
 export * from "./dashboard";
 export * from "./decision-capture";
 export * from "./embeddings";

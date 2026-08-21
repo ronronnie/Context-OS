@@ -80,7 +80,7 @@ Database concerns are separated from UI components:
 - `src/db/queries/` contains authorized query and service functions.
 - `src/db/seed.ts` seeds fictional development data.
 
-Core Product Memory tables include products, modules, features, knowledge items, knowledge embeddings, sources, knowledge-source links, knowledge relationships, feature relationships, tasks, Context Packs, Context Pack items, task outcomes, decision capture candidates, and knowledge-task links.
+Core Product Memory tables include products, modules, features, knowledge items, knowledge embeddings, sources, knowledge-source links, knowledge relationships, feature relationships, tasks, Context Packs, Context Pack items, task outcomes, decision capture candidates, knowledge-task links, and product audit events.
 
 ## Authorization Model
 
@@ -122,6 +122,8 @@ Do not duplicate authentication data in a separate profile model unless Context 
 - Task creation now generates versioned Context Packs from retrieved Product Memory, stores included items, and preserves older regenerated outputs.
 - Context Pack detail supports Codex, Claude, ChatGPT, and plain Markdown export modes with copy, download, and live preview.
 - Context Pack detail supports task outcome capture from Codex, Claude, ChatGPT, or user notes. Outcomes become source records and AI-extracted decision candidates must be reviewed before entering Product Memory.
+- Knowledge detail and Context Pack detail now show inspectable source evidence cards with source type, source name, URL, excerpt, created date, authority, and trust labels.
+- Product, feature, and source timelines include audit events for source creation, extraction runs, candidate approvals/rejections, knowledge edits, lifecycle changes, conflict resolution, Context Pack generation, and decision capture.
 - Product Intelligence provides guided, structured product-aware questions over retrieved Product Memory and graph relationships without becoming a generic chat interface.
 - The seeded Nextzen Demo story now covers Progress Reporting, Application Review, Award Management, and Design System with 40+ source-backed memory items, dated history, relationships, and the bulk progress-report approval demo task.
 - Dashboard and daily workflow surfaces now use live Product Memory data, including selected product, module/feature counts, verified memory count, unresolved conflicts, recent sources, recent tasks, recent Context Packs, suggested next actions, and route-level loading/error states.
@@ -282,6 +284,8 @@ Context Packs are saved in `context_packs` and their included Product Memory row
 
 The Context Pack detail view lives at `/products/[productId]/context-packs/[contextPackId]`. It shows pack metadata, included memory, source evidence, regeneration controls, and a copy-friendly compiled pack body for Codex, Claude, ChatGPT, or similar AI tools.
 
+Context Pack evidence is grouped under included Product Memory claims in the UI. Generated/exported pack text keeps evidence concise by citing source name, source type, created date, optional source date, URL, and excerpt.
+
 ## Context Pack Export Modes
 
 Context Packs can be exported in four formats:
@@ -312,6 +316,17 @@ Open `/intelligence` to run guided product-aware queries. The user chooses a pro
 Product Intelligence uses retrieval and Product Graph relationships before synthesis. The AI provider receives only selected Product Memory, relationship paths, and source evidence. Generated answers show the direct answer, supporting memory ids, relationship path, source evidence, risks, open questions, confidence, and unsupported claims.
 
 Product Intelligence answers are not Product Memory. They are analysis outputs. Any new decision or rule discovered from the work still needs the decision capture review flow before it can become trusted memory.
+
+## Evidence And Audit Trail
+
+Context OS preserves trust by keeping claims inspectable instead of silently flattening them into generated text.
+
+- Knowledge detail pages show linked source evidence with source type, source name, URL, excerpt, created date, authority, and trust labels.
+- Context Pack detail pages group evidence under each included memory item so important claims can be inspected without making the pack unreadable.
+- The generated Context Pack includes concise evidence references for retrieved memory.
+- Audit events are stored in `product_audit_events` with relational links back to the relevant product, module, feature, source, knowledge item, task, Context Pack, outcome, extraction run, candidate, or conflict.
+- Product and feature timelines combine lifecycle history with audit trail events. Source detail pages show source-specific audit history.
+- Trust labels use `Verified`, `Proposed`, `Outdated`, `Rejected`, `Canonical`, and `Unverified`.
 
 ## AI Provider Architecture
 

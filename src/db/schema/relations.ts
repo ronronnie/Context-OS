@@ -15,6 +15,7 @@ import {
   knowledgeSources,
   knowledgeTaskLinks,
   modules,
+  productAuditEvents,
   products,
   sourceExtractionCandidates,
   sourceExtractions,
@@ -30,6 +31,7 @@ export const userRelations = relations(user, ({ many }) => ({
   sources: many(sources),
   tasks: many(tasks),
   taskOutcomes: many(taskOutcomes),
+  auditEvents: many(productAuditEvents),
 }));
 
 export const productRelations = relations(products, ({ one, many }) => ({
@@ -47,6 +49,7 @@ export const productRelations = relations(products, ({ one, many }) => ({
   taskOutcomes: many(taskOutcomes),
   tasks: many(tasks),
   contextPacks: many(contextPacks),
+  auditEvents: many(productAuditEvents),
 }));
 
 export const moduleRelations = relations(modules, ({ one, many }) => ({
@@ -57,6 +60,7 @@ export const moduleRelations = relations(modules, ({ one, many }) => ({
   features: many(features),
   knowledgeItems: many(knowledgeItems),
   sources: many(sources),
+  auditEvents: many(productAuditEvents),
 }));
 
 export const featureRelations = relations(features, ({ one, many }) => ({
@@ -76,6 +80,7 @@ export const featureRelations = relations(features, ({ one, many }) => ({
   incomingRelationships: many(featureRelationships, {
     relationName: "toFeature",
   }),
+  auditEvents: many(productAuditEvents),
 }));
 
 export const knowledgeItemRelations = relations(knowledgeItems, ({ one, many }) => ({
@@ -109,6 +114,7 @@ export const knowledgeItemRelations = relations(knowledgeItems, ({ one, many }) 
   }),
   taskLinks: many(knowledgeTaskLinks),
   conflictsAsExisting: many(knowledgeConflicts),
+  auditEvents: many(productAuditEvents),
 }));
 
 export const knowledgeEventRelations = relations(knowledgeEvents, ({ one }) => ({
@@ -151,6 +157,7 @@ export const sourceRelations = relations(sources, ({ one, many }) => ({
   taskOutcomes: many(taskOutcomes),
   extractions: many(sourceExtractions),
   extractionCandidates: many(sourceExtractionCandidates),
+  auditEvents: many(productAuditEvents),
 }));
 
 export const sourceExtractionRelations = relations(sourceExtractions, ({ one, many }) => ({
@@ -168,6 +175,7 @@ export const sourceExtractionRelations = relations(sourceExtractions, ({ one, ma
   }),
   candidates: many(sourceExtractionCandidates),
   conflicts: many(knowledgeConflicts),
+  auditEvents: many(productAuditEvents),
 }));
 
 export const sourceExtractionCandidateRelations = relations(
@@ -198,10 +206,11 @@ export const sourceExtractionCandidateRelations = relations(
       references: [knowledgeItems.id],
     }),
     conflicts: many(knowledgeConflicts),
+    auditEvents: many(productAuditEvents),
   }),
 );
 
-export const knowledgeConflictRelations = relations(knowledgeConflicts, ({ one }) => ({
+export const knowledgeConflictRelations = relations(knowledgeConflicts, ({ one, many }) => ({
   product: one(products, {
     fields: [knowledgeConflicts.productId],
     references: [products.id],
@@ -222,6 +231,7 @@ export const knowledgeConflictRelations = relations(knowledgeConflicts, ({ one }
     fields: [knowledgeConflicts.resolvedBy],
     references: [user.id],
   }),
+  auditEvents: many(productAuditEvents),
 }));
 
 export const knowledgeEmbeddingRelations = relations(knowledgeEmbeddings, ({ one }) => ({
@@ -307,6 +317,7 @@ export const taskRelations = relations(tasks, ({ one, many }) => ({
   contextPacks: many(contextPacks),
   taskOutcomes: many(taskOutcomes),
   knowledgeTaskLinks: many(knowledgeTaskLinks),
+  auditEvents: many(productAuditEvents),
 }));
 
 export const contextPackRelations = relations(contextPacks, ({ one, many }) => ({
@@ -324,6 +335,7 @@ export const contextPackRelations = relations(contextPacks, ({ one, many }) => (
   }),
   taskOutcomes: many(taskOutcomes),
   items: many(contextPackItems),
+  auditEvents: many(productAuditEvents),
 }));
 
 export const contextPackItemRelations = relations(contextPackItems, ({ one }) => ({
@@ -368,11 +380,12 @@ export const taskOutcomeRelations = relations(taskOutcomes, ({ one, many }) => (
   }),
   candidates: many(decisionCaptureCandidates),
   knowledgeLinks: many(knowledgeTaskLinks),
+  auditEvents: many(productAuditEvents),
 }));
 
 export const decisionCaptureCandidateRelations = relations(
   decisionCaptureCandidates,
-  ({ one }) => ({
+  ({ one, many }) => ({
     outcome: one(taskOutcomes, {
       fields: [decisionCaptureCandidates.outcomeId],
       references: [taskOutcomes.id],
@@ -405,6 +418,7 @@ export const decisionCaptureCandidateRelations = relations(
       fields: [decisionCaptureCandidates.approvedKnowledgeItemId],
       references: [knowledgeItems.id],
     }),
+    auditEvents: many(productAuditEvents),
   }),
 );
 
@@ -431,6 +445,61 @@ export const knowledgeTaskLinkRelations = relations(knowledgeTaskLinks, ({ one }
   }),
   creator: one(user, {
     fields: [knowledgeTaskLinks.createdBy],
+    references: [user.id],
+  }),
+}));
+
+export const productAuditEventRelations = relations(productAuditEvents, ({ one }) => ({
+  product: one(products, {
+    fields: [productAuditEvents.productId],
+    references: [products.id],
+  }),
+  module: one(modules, {
+    fields: [productAuditEvents.moduleId],
+    references: [modules.id],
+  }),
+  feature: one(features, {
+    fields: [productAuditEvents.featureId],
+    references: [features.id],
+  }),
+  source: one(sources, {
+    fields: [productAuditEvents.sourceId],
+    references: [sources.id],
+  }),
+  knowledgeItem: one(knowledgeItems, {
+    fields: [productAuditEvents.knowledgeItemId],
+    references: [knowledgeItems.id],
+  }),
+  task: one(tasks, {
+    fields: [productAuditEvents.taskId],
+    references: [tasks.id],
+  }),
+  contextPack: one(contextPacks, {
+    fields: [productAuditEvents.contextPackId],
+    references: [contextPacks.id],
+  }),
+  outcome: one(taskOutcomes, {
+    fields: [productAuditEvents.outcomeId],
+    references: [taskOutcomes.id],
+  }),
+  sourceExtraction: one(sourceExtractions, {
+    fields: [productAuditEvents.sourceExtractionId],
+    references: [sourceExtractions.id],
+  }),
+  sourceExtractionCandidate: one(sourceExtractionCandidates, {
+    fields: [productAuditEvents.sourceExtractionCandidateId],
+    references: [sourceExtractionCandidates.id],
+  }),
+  decisionCaptureCandidate: one(decisionCaptureCandidates, {
+    fields: [productAuditEvents.decisionCaptureCandidateId],
+    references: [decisionCaptureCandidates.id],
+  }),
+  conflict: one(knowledgeConflicts, {
+    fields: [productAuditEvents.conflictId],
+    references: [knowledgeConflicts.id],
+  }),
+  creator: one(user, {
+    fields: [productAuditEvents.createdBy],
     references: [user.id],
   }),
 }));

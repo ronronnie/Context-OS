@@ -1,4 +1,5 @@
 import type { Feature, Module, Product, Source } from "@/db/schema";
+import { formatSourceEvidenceReference } from "@/lib/evidence/evidence-model";
 import type { RankedRetrievalResult } from "@/lib/retrieval/hybrid-ranking";
 
 export type ContextPackTaskInput = {
@@ -201,7 +202,7 @@ function formatEvidence(sources: Source[]) {
     return "No linked source evidence.";
   }
 
-  return sources.map((source) => source.name).join("; ");
+  return sources.map(formatSourceEvidenceReference).join("; ");
 }
 
 function getSourceDate(metadata: Source["metadata"]) {

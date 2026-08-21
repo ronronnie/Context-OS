@@ -1,6 +1,7 @@
 import { and, asc, desc, eq } from "drizzle-orm";
 
 import { db as defaultDb, type AppDb } from "@/db";
+import { recordProductAuditEvent } from "@/db/queries/audit";
 import { getFeaturesForModule } from "@/db/queries/features";
 import { getModulesForProduct } from "@/db/queries/modules";
 import { assertProductOwnership, getProductsForUser } from "@/db/queries/products";
@@ -9,6 +10,7 @@ import {
   knowledgeItems,
   knowledgeSources,
   modules,
+  productAuditEvents,
   sources,
 } from "@/db/schema/index";
 import { buildSourceExtractionInput } from "@/lib/source-ingestion/extraction";
@@ -118,6 +120,26 @@ export async function createSource(
     })
     .returning();
 
+  if (rows[0]) {
+    await recordProductAuditEvent(
+      {
+        productId: input.productId,
+        moduleId: input.moduleId,
+        featureId: input.featureId,
+        sourceId: rows[0].id,
+        eventType: "source_created",
+        title: `Source created: ${rows[0].name}`,
+        summary: `${rows[0].sourceType} source added to Product Memory evidence.`,
+        metadata: {
+          sourceType: rows[0].sourceType,
+          hasUrl: Boolean(rows[0].url),
+        },
+      },
+      userId,
+      db,
+    );
+  }
+
   return rows[0];
 }
 
@@ -161,6 +183,17 @@ export async function getSourceDetail(
     )
     .where(eq(knowledgeSources.sourceId, source.id))
     .orderBy(desc(knowledgeItems.updatedAt));
+  const auditTrail = await db
+    .select()
+    .from(productAuditEvents)
+    .where(
+      and(
+        eq(productAuditEvents.productId, productId),
+        eq(productAuditEvents.sourceId, source.id),
+      ),
+    )
+    .orderBy(desc(productAuditEvents.createdAt))
+    .limit(20);
 
   return {
     product,
@@ -168,6 +201,7 @@ export async function getSourceDetail(
     module: attachedModule ?? null,
     feature: attachedFeature ?? null,
     knowledge: linkedKnowledge.map((row) => row.knowledge),
+    auditTrail,
     extractionInput: buildSourceExtractionInput(source),
   };
 }

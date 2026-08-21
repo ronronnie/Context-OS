@@ -3,6 +3,7 @@ import { and, asc, desc, eq, or } from "drizzle-orm";
 import { extractDecisionCandidates } from "@/ai";
 import type { AIProvider } from "@/ai/provider";
 import { db as defaultDb, type AppDb } from "@/db";
+import { recordProductAuditEvent } from "@/db/queries/audit";
 import { trySyncKnowledgeEmbedding } from "@/db/queries/embeddings";
 import { assertProductOwnership } from "@/db/queries/products";
 import {
@@ -66,6 +67,26 @@ export async function createTaskOutcomeForReview(
     })
     .returning();
 
+  await recordProductAuditEvent(
+    {
+      productId,
+      moduleId: input.moduleId,
+      featureId: input.featureId,
+      sourceId: source.id,
+      taskId: detail.task.id,
+      contextPackId,
+      eventType: "source_created",
+      title: `Source created: ${source.name}`,
+      summary: "Task outcome was stored as source evidence.",
+      metadata: {
+        sourceType: source.sourceType,
+        outcomeKind: "task_outcome",
+      },
+    },
+    userId,
+    db,
+  );
+
   const [outcome] = await db
     .insert(taskOutcomes)
     .values({
@@ -83,6 +104,27 @@ export async function createTaskOutcomeForReview(
       createdBy: userId,
     })
     .returning();
+
+  await recordProductAuditEvent(
+    {
+      productId,
+      moduleId: input.moduleId,
+      featureId: input.featureId,
+      sourceId: source.id,
+      taskId: detail.task.id,
+      contextPackId,
+      outcomeId: outcome.id,
+      eventType: "decision_captured",
+      title: `Decision captured: ${outcome.summary}`,
+      summary: "Task outcome queued for AI extraction and human verification.",
+      metadata: {
+        status: outcome.status,
+        hasReferences: Boolean(outcome.references),
+      },
+    },
+    userId,
+    db,
+  );
 
   try {
     const existingKnowledge = await getExistingKnowledgeForDecisionCapture(
@@ -358,6 +400,30 @@ export async function approveDecisionCaptureCandidate(
     })
     .where(eq(decisionCaptureCandidates.id, candidateId));
 
+  await recordProductAuditEvent(
+    {
+      productId,
+      moduleId: candidate.moduleId,
+      featureId: candidate.featureId,
+      sourceId: candidate.sourceId,
+      knowledgeItemId: knowledge.id,
+      taskId: candidate.taskId,
+      contextPackId,
+      outcomeId,
+      decisionCaptureCandidateId: candidateId,
+      eventType: "candidate_approved",
+      title: `Decision candidate approved: ${knowledge.title}`,
+      summary: "Task outcome candidate became verified Product Memory.",
+      metadata: {
+        authority: edits.authority,
+        confidence: edits.confidence,
+        knowledgeType: edits.knowledgeType,
+      },
+    },
+    userId,
+    db,
+  );
+
   await trySyncKnowledgeEmbedding(knowledge.id, productId, userId, db);
 
   return knowledge;
@@ -389,6 +455,30 @@ export async function rejectDecisionCaptureCandidate(
       ),
     )
     .returning();
+
+  if (rows[0]) {
+    await recordProductAuditEvent(
+      {
+        productId,
+        moduleId: rows[0].moduleId,
+        featureId: rows[0].featureId,
+        sourceId: rows[0].sourceId,
+        taskId: rows[0].taskId,
+        contextPackId,
+        outcomeId,
+        decisionCaptureCandidateId: candidateId,
+        eventType: "candidate_rejected",
+        title: `Decision candidate rejected: ${rows[0].title}`,
+        summary: "Task outcome candidate was rejected during human review.",
+        metadata: {
+          knowledgeType: rows[0].knowledgeType,
+          confidence: rows[0].confidence,
+        },
+      },
+      userId,
+      db,
+    );
+  }
 
   return rows[0] ?? null;
 }
