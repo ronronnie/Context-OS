@@ -85,6 +85,13 @@
       "when": 1787345176090,
       "tag": "0011_great_mercury",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1787350263398,
+      "tag": "0012_skinny_chat",
+      "breakpoints": true
     }
   ]
 }
