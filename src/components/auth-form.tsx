@@ -18,10 +18,19 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
     const name = String(formData.get("name") ?? "");
 
     startTransition(async () => {
-      const result =
-        mode === "sign-up"
-          ? await authClient.signUp.email({ email, password, name })
-          : await authClient.signIn.email({ email, password });
+      let result;
+
+      try {
+        result =
+          mode === "sign-up"
+            ? await authClient.signUp.email({ email, password, name })
+            : await authClient.signIn.email({ email, password });
+      } catch {
+        setError(
+          "Authentication service is unavailable. Check the local app URL, trusted origins, and database connection.",
+        );
+        return;
+      }
 
       if (result.error) {
         setError(result.error.message ?? "Authentication failed.");
