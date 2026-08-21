@@ -18,6 +18,7 @@ export const knowledgeTypeOptions: Array<{ value: KnowledgeType; label: string }
   { value: "decision", label: "Decisions" },
   { value: "rejected_approach", label: "Rejected approaches" },
   { value: "known_issue", label: "Known issues" },
+  { value: "open_question", label: "Open questions" },
   { value: "research_insight", label: "Research insights" },
   { value: "component", label: "Components" },
   { value: "terminology", label: "Terminology" },

@@ -38,3 +38,11 @@ export function sourceExtractionRoute(
 export function contextPackRoute(productId: string, contextPackId: string) {
   return `/products/${productId}/context-packs/${contextPackId}`;
 }
+
+export function taskOutcomeRoute(
+  productId: string,
+  contextPackId: string,
+  outcomeId: string,
+) {
+  return `${contextPackRoute(productId, contextPackId)}/outcomes/${outcomeId}`;
+}

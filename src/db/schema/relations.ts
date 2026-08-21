@@ -4,6 +4,7 @@ import { user } from "@/db/schema/auth";
 import {
   contextPackItems,
   contextPacks,
+  decisionCaptureCandidates,
   featureRelationships,
   features,
   knowledgeEmbeddings,
@@ -12,11 +13,13 @@ import {
   knowledgeEvents,
   knowledgeRelationships,
   knowledgeSources,
+  knowledgeTaskLinks,
   modules,
   products,
   sourceExtractionCandidates,
   sourceExtractions,
   sources,
+  taskOutcomes,
   tasks,
 } from "@/db/schema/product-memory";
 
@@ -26,6 +29,7 @@ export const userRelations = relations(user, ({ many }) => ({
   knowledgeEmbeddings: many(knowledgeEmbeddings),
   sources: many(sources),
   tasks: many(tasks),
+  taskOutcomes: many(taskOutcomes),
 }));
 
 export const productRelations = relations(products, ({ one, many }) => ({
@@ -40,6 +44,7 @@ export const productRelations = relations(products, ({ one, many }) => ({
   sourceExtractions: many(sourceExtractions),
   featureRelationships: many(featureRelationships),
   knowledgeRelationships: many(knowledgeRelationships),
+  taskOutcomes: many(taskOutcomes),
   tasks: many(tasks),
   contextPacks: many(contextPacks),
 }));
@@ -102,6 +107,7 @@ export const knowledgeItemRelations = relations(knowledgeItems, ({ one, many }) 
   incomingRelationships: many(knowledgeRelationships, {
     relationName: "toKnowledge",
   }),
+  taskLinks: many(knowledgeTaskLinks),
   conflictsAsExisting: many(knowledgeConflicts),
 }));
 
@@ -142,6 +148,7 @@ export const sourceRelations = relations(sources, ({ one, many }) => ({
     references: [user.id],
   }),
   knowledgeLinks: many(knowledgeSources),
+  taskOutcomes: many(taskOutcomes),
   extractions: many(sourceExtractions),
   extractionCandidates: many(sourceExtractionCandidates),
 }));
@@ -298,6 +305,8 @@ export const taskRelations = relations(tasks, ({ one, many }) => ({
     references: [user.id],
   }),
   contextPacks: many(contextPacks),
+  taskOutcomes: many(taskOutcomes),
+  knowledgeTaskLinks: many(knowledgeTaskLinks),
 }));
 
 export const contextPackRelations = relations(contextPacks, ({ one, many }) => ({
@@ -313,6 +322,7 @@ export const contextPackRelations = relations(contextPacks, ({ one, many }) => (
     fields: [contextPacks.createdBy],
     references: [user.id],
   }),
+  taskOutcomes: many(taskOutcomes),
   items: many(contextPackItems),
 }));
 
@@ -324,5 +334,103 @@ export const contextPackItemRelations = relations(contextPackItems, ({ one }) =>
   knowledgeItem: one(knowledgeItems, {
     fields: [contextPackItems.knowledgeItemId],
     references: [knowledgeItems.id],
+  }),
+}));
+
+export const taskOutcomeRelations = relations(taskOutcomes, ({ one, many }) => ({
+  product: one(products, {
+    fields: [taskOutcomes.productId],
+    references: [products.id],
+  }),
+  task: one(tasks, {
+    fields: [taskOutcomes.taskId],
+    references: [tasks.id],
+  }),
+  contextPack: one(contextPacks, {
+    fields: [taskOutcomes.contextPackId],
+    references: [contextPacks.id],
+  }),
+  module: one(modules, {
+    fields: [taskOutcomes.moduleId],
+    references: [modules.id],
+  }),
+  feature: one(features, {
+    fields: [taskOutcomes.featureId],
+    references: [features.id],
+  }),
+  source: one(sources, {
+    fields: [taskOutcomes.sourceId],
+    references: [sources.id],
+  }),
+  creator: one(user, {
+    fields: [taskOutcomes.createdBy],
+    references: [user.id],
+  }),
+  candidates: many(decisionCaptureCandidates),
+  knowledgeLinks: many(knowledgeTaskLinks),
+}));
+
+export const decisionCaptureCandidateRelations = relations(
+  decisionCaptureCandidates,
+  ({ one }) => ({
+    outcome: one(taskOutcomes, {
+      fields: [decisionCaptureCandidates.outcomeId],
+      references: [taskOutcomes.id],
+    }),
+    product: one(products, {
+      fields: [decisionCaptureCandidates.productId],
+      references: [products.id],
+    }),
+    task: one(tasks, {
+      fields: [decisionCaptureCandidates.taskId],
+      references: [tasks.id],
+    }),
+    contextPack: one(contextPacks, {
+      fields: [decisionCaptureCandidates.contextPackId],
+      references: [contextPacks.id],
+    }),
+    source: one(sources, {
+      fields: [decisionCaptureCandidates.sourceId],
+      references: [sources.id],
+    }),
+    module: one(modules, {
+      fields: [decisionCaptureCandidates.moduleId],
+      references: [modules.id],
+    }),
+    feature: one(features, {
+      fields: [decisionCaptureCandidates.featureId],
+      references: [features.id],
+    }),
+    approvedKnowledgeItem: one(knowledgeItems, {
+      fields: [decisionCaptureCandidates.approvedKnowledgeItemId],
+      references: [knowledgeItems.id],
+    }),
+  }),
+);
+
+export const knowledgeTaskLinkRelations = relations(knowledgeTaskLinks, ({ one }) => ({
+  product: one(products, {
+    fields: [knowledgeTaskLinks.productId],
+    references: [products.id],
+  }),
+  knowledgeItem: one(knowledgeItems, {
+    fields: [knowledgeTaskLinks.knowledgeItemId],
+    references: [knowledgeItems.id],
+  }),
+  task: one(tasks, {
+    fields: [knowledgeTaskLinks.taskId],
+    references: [tasks.id],
+  }),
+  contextPack: one(contextPacks, {
+    fields: [knowledgeTaskLinks.contextPackId],
+    references: [contextPacks.id],
+  }),
+  outcome: one(taskOutcomes, {
+    fields: [knowledgeTaskLinks.outcomeId],
+    references: [taskOutcomes.id],
+  }),
+  creator: one(user, {
+    fields: [knowledgeTaskLinks.createdBy],
+    references: [user.id],
   }),
 }));

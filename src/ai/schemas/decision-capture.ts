@@ -1,18 +1,13 @@
 import { z } from "zod";
 
-const knowledgeTypeSchema = z.enum([
-  "current_behaviour",
+const decisionKnowledgeTypeSchema = z.enum([
+  "decision",
   "product_rule",
-  "business_rule",
   "ux_pattern",
   "technical_constraint",
-  "permission",
-  "decision",
   "rejected_approach",
-  "known_issue",
   "open_question",
-  "research_insight",
-  "component",
+  "known_issue",
   "terminology",
 ]);
 
@@ -24,10 +19,10 @@ const authoritySchema = z.enum([
   "unverified",
 ]);
 
-export const extractionCandidateSchema = z.object({
+export const decisionCaptureCandidateSchema = z.object({
   title: z.string().trim().min(1),
   body: z.string().trim().min(1),
-  knowledgeType: knowledgeTypeSchema,
+  knowledgeType: decisionKnowledgeTypeSchema,
   suggestedAuthority: authoritySchema,
   confidence: z.number().int().min(0).max(100),
   reasoningSummary: z.string().trim().min(1),
@@ -38,22 +33,26 @@ export const extractionCandidateSchema = z.object({
     }),
   ).min(1),
   potentialRelationships: z.array(z.string().trim().min(1)).default([]),
-  appearsHistorical: z.boolean().default(false),
   possibleConflicts: z.array(z.string().trim().min(1)).default([]),
+  relevantOldKnowledgeIds: z.array(z.string().trim().min(1)).default([]),
+  supersededKnowledgeIds: z.array(z.string().trim().min(1)).default([]),
 });
 
-export const productKnowledgeExtractionSchema = z.object({
+export const decisionCaptureExtractionSchema = z.object({
+  outcomeId: z.string().trim().min(1),
   sourceId: z.string().trim().min(1),
-  candidates: z.array(extractionCandidateSchema),
-  skippedClaims: z.array(
+  candidates: z.array(decisionCaptureCandidateSchema),
+  skippedItems: z.array(
     z.object({
-      claim: z.string().trim().min(1),
+      item: z.string().trim().min(1),
       reason: z.string().trim().min(1),
     }),
   ).default([]),
 });
 
-export type ExtractionCandidate = z.infer<typeof extractionCandidateSchema>;
-export type ProductKnowledgeExtraction = z.infer<
-  typeof productKnowledgeExtractionSchema
+export type DecisionCaptureCandidate = z.infer<
+  typeof decisionCaptureCandidateSchema
+>;
+export type DecisionCaptureExtraction = z.infer<
+  typeof decisionCaptureExtractionSchema
 >;

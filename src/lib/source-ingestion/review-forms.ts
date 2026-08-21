@@ -19,6 +19,7 @@ const candidateReviewFormSchema = z.object({
     "decision",
     "rejected_approach",
     "known_issue",
+    "open_question",
     "research_insight",
     "component",
     "terminology",

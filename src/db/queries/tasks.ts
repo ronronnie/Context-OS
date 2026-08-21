@@ -11,6 +11,7 @@ import {
   modules,
   products,
   sources,
+  taskOutcomes,
   tasks,
 } from "@/db/schema/index";
 import {
@@ -229,12 +230,31 @@ export async function getContextPackDetail(
     .orderBy(desc(contextPackItems.relevanceScore));
   const knowledgeIds = itemRows.map((row) => row.knowledgeItem.id);
   const evidence = await getSourcesForKnowledge(knowledgeIds, db);
+  const productModules = await db
+    .select()
+    .from(modules)
+    .where(eq(modules.productId, productId))
+    .orderBy(asc(modules.position), asc(modules.name));
+  const productFeatures = await db
+    .select()
+    .from(features)
+    .where(eq(features.productId, productId))
+    .orderBy(asc(features.name));
+  const outcomes = await db
+    .select()
+    .from(taskOutcomes)
+    .where(eq(taskOutcomes.contextPackId, contextPackId))
+    .orderBy(desc(taskOutcomes.createdAt))
+    .limit(5);
 
   return {
     ...detail,
     module: productModule,
     items: itemRows,
     evidence,
+    productModules,
+    productFeatures,
+    outcomes,
   };
 }
 

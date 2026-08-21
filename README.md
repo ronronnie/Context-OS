@@ -80,7 +80,7 @@ Database concerns are separated from UI components:
 - `src/db/queries/` contains authorized query and service functions.
 - `src/db/seed.ts` seeds fictional development data.
 
-Core Product Memory tables include products, modules, features, knowledge items, knowledge embeddings, sources, knowledge-source links, knowledge relationships, feature relationships, tasks, Context Packs, and Context Pack items.
+Core Product Memory tables include products, modules, features, knowledge items, knowledge embeddings, sources, knowledge-source links, knowledge relationships, feature relationships, tasks, Context Packs, Context Pack items, task outcomes, decision capture candidates, and knowledge-task links.
 
 ## Authorization Model
 
@@ -121,10 +121,12 @@ Do not duplicate authentication data in a separate profile model unless Context 
 - Embedding sync is wired into verified Product Memory creation, verified updates, lifecycle transitions, and approved extraction candidates.
 - Task creation now generates versioned Context Packs from retrieved Product Memory, stores included items, and preserves older regenerated outputs.
 - Context Pack detail supports Codex, Claude, ChatGPT, and plain Markdown export modes with copy, download, and live preview.
+- Context Pack detail supports task outcome capture from Codex, Claude, ChatGPT, or user notes. Outcomes become source records and AI-extracted decision candidates must be reviewed before entering Product Memory.
 - Manual Source Ingestion supports product/module/feature attachment, source type validation, metadata JSON, raw content storage, source detail pages, connected knowledge display, and an extraction handoff shape for the later AI extraction prompt.
 - AI provider abstraction supports server-side text, structured output, and embedding operations with timeout, retry, error handling, malformed response handling, and a Product Memory extraction operation that returns proposed candidates only.
 - AI Knowledge Extraction can run from a raw Source, persist atomic candidates for review, and only write approved candidates into verified Product Memory with source evidence attached.
 - Conflict detection compares extracted candidates to verified memory, surfaces contradictions, supersessions, duplicates, historical/current mismatches, and authority mismatches, and requires explicit human resolution before conflicted candidates enter Product Memory.
+- Decision Capture can extract decisions, product rules, UX patterns, technical constraints, rejected approaches, open questions, known issues, and terminology changes from a task outcome. Approved candidates link back to the outcome source, originating task, Context Pack, affected feature, and optional related prior memory.
 
 ## Product Architecture Workflow
 
@@ -254,6 +256,18 @@ Context Packs can be exported in four formats:
 - Plain Markdown: the stored Context Pack without tool-specific framing.
 
 The export panel on the Context Pack detail page includes a mode selector, copy button, download markdown button, and visible preview. Formatting lives in `src/lib/context-packs/exports.ts` so the same pack can move into multiple AI tools without coupling Context OS to one provider or chat interface.
+
+## Decision Capture Workflow
+
+After exporting a Context Pack and completing work in Codex, Claude, ChatGPT, or separate notes:
+
+1. Open the Context Pack detail page.
+2. Paste the work result into `Capture task outcome`.
+3. Add a summary, final decision notes, links or references, and affected module/feature.
+4. Context OS creates a `task_outcome` source and extracts pending decision candidates.
+5. Review each candidate, edit title/body/type/authority/evidence, optionally link it to existing Product Memory, then approve or reject.
+
+Only approved candidates become verified `knowledge_items`. Approval creates the evidence link, task link, Context Pack/outcome link, optional knowledge relationship, embedding sync, and a feature timeline event. Rejected and pending candidates stay as review records and never become trusted Product Memory automatically.
 
 ## AI Provider Architecture
 

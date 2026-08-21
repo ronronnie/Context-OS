@@ -54,7 +54,7 @@ const sectionConfig = [
   },
   {
     title: "Known Issues",
-    types: ["known_issue"] as const,
+    types: ["known_issue", "open_question"] as const,
   },
 ] as const;
 

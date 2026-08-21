@@ -26,6 +26,7 @@ export const knowledgeTypeEnum = pgEnum("knowledge_type", [
   "decision",
   "rejected_approach",
   "known_issue",
+  "open_question",
   "research_insight",
   "component",
   "terminology",
@@ -79,6 +80,12 @@ export const extractionCandidateStatusEnum = pgEnum(
   "extraction_candidate_status",
   ["pending", "approved", "rejected"],
 );
+
+export const taskOutcomeStatusEnum = pgEnum("task_outcome_status", [
+  "created",
+  "extracted",
+  "failed",
+]);
 
 export const knowledgeConflictTypeEnum = pgEnum("knowledge_conflict_type", [
   "contradiction",
@@ -288,6 +295,107 @@ export const sourceExtractionCandidates = pgTable("source_extraction_candidates"
   index("source_extraction_candidates_status_idx").on(table.status),
 ]);
 
+export const taskOutcomes = pgTable("task_outcomes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  productId: uuid("product_id").notNull().references(() => products.id),
+  taskId: uuid("task_id").notNull().references(() => tasks.id, {
+    onDelete: "cascade",
+  }),
+  contextPackId: uuid("context_pack_id").references(() => contextPacks.id, {
+    onDelete: "set null",
+  }),
+  moduleId: uuid("module_id").references(() => modules.id),
+  featureId: uuid("feature_id").references(() => features.id),
+  sourceId: uuid("source_id").references(() => sources.id),
+  summary: text("summary").notNull(),
+  finalDecisionNotes: text("final_decision_notes").notNull().default(""),
+  references: text("references").notNull().default(""),
+  pastedOutcome: text("pasted_outcome").notNull(),
+  status: taskOutcomeStatusEnum("status").notNull().default("created"),
+  errorMessage: text("error_message"),
+  createdBy: text("created_by").notNull().references(() => user.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("task_outcomes_product_id_idx").on(table.productId),
+  index("task_outcomes_task_id_idx").on(table.taskId),
+  index("task_outcomes_context_pack_id_idx").on(table.contextPackId),
+  index("task_outcomes_feature_id_idx").on(table.featureId),
+  index("task_outcomes_created_by_idx").on(table.createdBy),
+]);
+
+export const decisionCaptureCandidates = pgTable("decision_capture_candidates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  outcomeId: uuid("outcome_id").notNull().references(() => taskOutcomes.id, {
+    onDelete: "cascade",
+  }),
+  productId: uuid("product_id").notNull().references(() => products.id),
+  taskId: uuid("task_id").notNull().references(() => tasks.id, {
+    onDelete: "cascade",
+  }),
+  contextPackId: uuid("context_pack_id").references(() => contextPacks.id, {
+    onDelete: "set null",
+  }),
+  sourceId: uuid("source_id").notNull().references(() => sources.id, {
+    onDelete: "cascade",
+  }),
+  moduleId: uuid("module_id").references(() => modules.id),
+  featureId: uuid("feature_id").references(() => features.id),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  knowledgeType: knowledgeTypeEnum("knowledge_type").notNull(),
+  suggestedAuthority: authorityEnum("suggested_authority").notNull(),
+  confidence: integer("confidence").notNull(),
+  reasoningSummary: text("reasoning_summary").notNull().default(""),
+  sourceEvidence: jsonb("source_evidence")
+    .$type<Array<{ sourceId: string; supportingText: string }>>()
+    .default([])
+    .notNull(),
+  potentialRelationships: jsonb("potential_relationships")
+    .$type<string[]>()
+    .default([])
+    .notNull(),
+  possibleConflicts: jsonb("possible_conflicts")
+    .$type<string[]>()
+    .default([])
+    .notNull(),
+  status: extractionCandidateStatusEnum("status").notNull().default("pending"),
+  approvedKnowledgeItemId: uuid("approved_knowledge_item_id").references(
+    () => knowledgeItems.id,
+  ),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("decision_capture_candidates_outcome_id_idx").on(table.outcomeId),
+  index("decision_capture_candidates_product_id_idx").on(table.productId),
+  index("decision_capture_candidates_task_id_idx").on(table.taskId),
+  index("decision_capture_candidates_status_idx").on(table.status),
+]);
+
+export const knowledgeTaskLinks = pgTable("knowledge_task_links", {
+  knowledgeItemId: uuid("knowledge_item_id").notNull().references(() => knowledgeItems.id, {
+    onDelete: "cascade",
+  }),
+  taskId: uuid("task_id").notNull().references(() => tasks.id, {
+    onDelete: "cascade",
+  }),
+  productId: uuid("product_id").notNull().references(() => products.id),
+  contextPackId: uuid("context_pack_id").references(() => contextPacks.id, {
+    onDelete: "set null",
+  }),
+  outcomeId: uuid("outcome_id").references(() => taskOutcomes.id, {
+    onDelete: "set null",
+  }),
+  linkType: text("link_type").notNull().default("captured_from_outcome"),
+  createdBy: text("created_by").references(() => user.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  primaryKey({ columns: [table.knowledgeItemId, table.taskId, table.linkType] }),
+  index("knowledge_task_links_product_id_idx").on(table.productId),
+  index("knowledge_task_links_task_id_idx").on(table.taskId),
+  index("knowledge_task_links_outcome_id_idx").on(table.outcomeId),
+]);
+
 export const knowledgeConflicts = pgTable("knowledge_conflicts", {
   id: uuid("id").defaultRandom().primaryKey(),
   productId: uuid("product_id").notNull().references(() => products.id),
@@ -448,6 +556,8 @@ export type KnowledgeItem = typeof knowledgeItems.$inferSelect;
 export type KnowledgeEmbedding = typeof knowledgeEmbeddings.$inferSelect;
 export type KnowledgeEvent = typeof knowledgeEvents.$inferSelect;
 export type Source = typeof sources.$inferSelect;
+export type TaskOutcome = typeof taskOutcomes.$inferSelect;
+export type DecisionCaptureCandidate = typeof decisionCaptureCandidates.$inferSelect;
 export type FeatureRelationship = typeof featureRelationships.$inferSelect;
 export type KnowledgeRelationship = typeof knowledgeRelationships.$inferSelect;
 export type Task = typeof tasks.$inferSelect;

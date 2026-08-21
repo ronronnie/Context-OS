@@ -1,4 +1,5 @@
 export * from "./authorization";
+export * from "./decision-capture";
 export * from "./embeddings";
 export * from "./features";
 export * from "./knowledge";
