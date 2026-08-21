@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { regenerateContextPackAction } from "@/app/actions/context-packs";
+import { ContextPackExportPanel } from "@/components/context-pack-export-panel";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { SectionHeader } from "@/components/section-header";
@@ -35,6 +36,57 @@ export default async function ContextPackDetailPage({
     taskIntent?: string;
     moduleName?: string | null;
     featureName?: string | null;
+  };
+  const evidenceByKnowledgeId = detail.evidence.reduce((map, row) => {
+    const list = map.get(row.knowledgeItemId) ?? [];
+    list.push(row.source);
+    map.set(row.knowledgeItemId, list);
+    return map;
+  }, new Map<string, Array<(typeof detail.evidence)[number]["source"]>>());
+  const exportData = {
+    pack: {
+      id: detail.pack.id,
+      version: detail.pack.version,
+      generatedContent: detail.pack.generatedContent,
+    },
+    task: {
+      title: detail.task.title,
+      description: detail.task.description,
+      status: detail.task.status,
+    },
+    product: {
+      name: detail.product.name,
+      description: detail.product.description,
+    },
+    module: detail.module
+      ? {
+          name: detail.module.name,
+          description: detail.module.description,
+        }
+      : null,
+    feature: detail.feature
+      ? {
+          name: detail.feature.name,
+          description: detail.feature.description,
+        }
+      : null,
+    items: detail.items.map((row) => ({
+      title: row.knowledgeItem.title,
+      body: row.knowledgeItem.body,
+      knowledgeType: row.knowledgeItem.knowledgeType,
+      authority: row.knowledgeItem.authority,
+      confidence: row.knowledgeItem.confidence,
+      lifecycleStatus: row.knowledgeItem.lifecycleStatus,
+      relevanceScore: row.item.relevanceScore,
+      reasonForInclusion: row.item.reasonForInclusion,
+      evidence: (evidenceByKnowledgeId.get(row.knowledgeItem.id) ?? []).map(
+        (source) => ({
+          name: source.name,
+          sourceType: source.sourceType,
+          url: source.url,
+        }),
+      ),
+    })),
   };
 
   return (
@@ -148,17 +200,7 @@ export default async function ContextPackDetailPage({
           </section>
         </div>
 
-        <section className="rounded-md border border-[var(--border)] bg-[var(--panel)]">
-          <SectionHeader
-            title="Generated Context Pack"
-            description="Select the compiled pack text to copy into Codex, Claude, ChatGPT, or another AI tool."
-          />
-          <textarea
-            className="min-h-[820px] w-full resize-y rounded-b-md border-0 bg-white p-4 font-mono text-xs leading-6 text-[var(--muted-strong)] outline-none"
-            readOnly
-            value={detail.pack.generatedContent}
-          />
-        </section>
+        <ContextPackExportPanel data={exportData} />
       </section>
     </div>
   );
