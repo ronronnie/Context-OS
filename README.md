@@ -4,6 +4,14 @@ Context OS is a living product-memory layer for teams working on mature software
 
 The MVP uses fictional Nextzen Demo data. Do not ingest real employer data or proprietary material.
 
+## Documentation Map
+
+- [Architecture](docs/architecture.md): App Router structure, server/client boundaries, domain/data layers, authorization, retrieval, Context Packs, and decision capture.
+- [Product Memory Model](docs/product-memory-model.md): Product Graph structure, knowledge types, authority, confidence, lifecycle, evidence, relationships, history, and conflict resolution.
+- [Demo Script](docs/demo-script.md): Step-by-step Nextzen Demo walkthrough.
+- [Figma Integration Plan](docs/figma-integration-plan.md): Later Figma integration boundary and current manual Figma evidence placeholders.
+- [Project Rules](PROJECT_RULES.md): Product vision, stack, architecture boundaries, and required checks.
+
 ## Stack
 
 - Next.js App Router
@@ -14,7 +22,6 @@ The MVP uses fictional Nextzen Demo data. Do not ingest real employer data or pr
 - Drizzle ORM and migrations
 - `@neondatabase/serverless`
 - Neon Auth / Managed Better Auth through Better Auth
-- pgvector planned inside Neon Postgres for embeddings
 - pgvector inside Neon Postgres for semantic retrieval
 
 ## Local Setup
@@ -25,7 +32,14 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open the local URL printed by Next.js. The default is `http://localhost:3000`; if that port is occupied, use `npm run dev -- -p 3001` and update `BETTER_AUTH_URL`, `BETTER_AUTH_TRUSTED_ORIGINS`, and `NEXT_PUBLIC_APP_URL` to match.
+
+For a fresh Neon database, run:
+
+```bash
+npm run db:migrate
+npm run db:seed
+```
 
 ## Environment Variables
 
@@ -51,6 +65,8 @@ AI_EMBEDDING_MODEL="text-embedding-3-small"
 AI_EMBEDDING_DIMENSIONS="1536"
 ```
 
+Only `NEXT_PUBLIC_APP_URL` is browser-visible. Keep `DATABASE_URL`, `BETTER_AUTH_SECRET`, and AI provider keys server-side only.
+
 ## Neon Setup
 
 1. Create a Neon project and Postgres database.
@@ -59,6 +75,21 @@ AI_EMBEDDING_DIMENSIONS="1536"
 4. Set `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` to the local or deployed app URL.
 5. Add any extra local, preview, or production origins to `BETTER_AUTH_TRUSTED_ORIGINS`.
 6. Run migrations and seed the fictional dataset.
+
+Use a clean Neon database or branch for Context OS. Do not point `DATABASE_URL` at another app's database; Context OS migrations create Better Auth tables, Product Memory tables, pgvector embeddings, audit tables, and Drizzle migration metadata.
+
+## Neon Auth / Managed Better Auth Setup
+
+The current implementation uses Better Auth with the Drizzle adapter on Neon Postgres. Managed Neon Auth values are reserved in `.env.example` for the later hosted auth path, but local MVP authentication is email/password through Better Auth.
+
+Required local auth values:
+
+- `BETTER_AUTH_SECRET`: long random string.
+- `BETTER_AUTH_URL`: the exact local or deployed app origin.
+- `BETTER_AUTH_TRUSTED_ORIGINS`: comma-separated allowed origins.
+- `NEXT_PUBLIC_APP_URL`: the app origin used by browser-side auth client code.
+
+If sign-up returns `Invalid origin`, the current browser URL is missing from `BETTER_AUTH_TRUSTED_ORIGINS`. If sign-up returns a database error, run migrations against the configured Neon database.
 
 ## Database Commands
 
@@ -69,6 +100,20 @@ npm run db:seed
 ```
 
 `db:generate` writes Drizzle migrations under `src/db/migrations`. `db:migrate` applies them to Neon using `DATABASE_URL`. `db:seed` creates fictional Nextzen Demo data for the guided MVP story.
+
+If `drizzle-kit migrate` hangs against Neon, verify the URL with a direct lightweight query and use the Drizzle Neon HTTP migrator path documented in [Architecture](docs/architecture.md). Keep generated migrations and the `drizzle.__drizzle_migrations` table aligned.
+
+## pgvector Setup
+
+pgvector is enabled by migration through:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+Embeddings are stored in `knowledge_embeddings` inside Neon Postgres. The vector column dimensions are controlled by `AI_EMBEDDING_DIMENSIONS` and the schema constant in `src/ai/embedding-config.ts`; changing dimensions later requires an explicit migration.
+
+No separate vector database should be introduced for the MVP.
 
 ## Database Architecture
 
@@ -338,6 +383,56 @@ AI calls live under `src/ai` and are server-side only. The first provider is `op
 The AI layer is split into provider config, provider implementation, prompts, schemas, and operations. Structured outputs are validated with Zod. Malformed JSON, schema mismatches, provider failures, and source-id mismatches fail before anything can be written to Product Memory.
 
 To add another provider later, add a provider implementation that satisfies `AIProvider`, extend the `AI_PROVIDER` config parser, and keep existing domain operations unchanged.
+
+## Contributor Notes
+
+Read `PROJECT_RULES.md` before changing product behavior or architecture. Keep Context OS focused on feature-aware Product Memory, not generic chat or generic document search.
+
+Coding conventions:
+
+- Prefer Server Components for data-loading pages and Client Components only for browser interaction.
+- Keep database access inside `src/db/queries`, server actions, or server-only domain services.
+- Keep product rules and workflow behavior in `src/lib` or `src/ai/operations`, not duplicated across pages.
+- Keep provider-specific AI code behind the `AIProvider` interface.
+- Use Drizzle schema and generated migrations for database changes.
+- Do not commit `.env.local` or real secrets.
+- Do not ingest real employer or proprietary data into the demo.
+
+Where to add new domain logic:
+
+- Product architecture and graph behavior: `src/lib/product-graph`, `src/db/queries/product-graph.ts`, and related server actions.
+- Product Memory forms, lifecycle, and conflict behavior: `src/lib/product-memory`.
+- Source ingestion and extraction review: `src/lib/source-ingestion` plus `src/app/actions/source-*`.
+- Context Pack compilation and exports: `src/lib/context-packs`.
+- Decision capture: `src/lib/decision-capture`, `src/db/queries/decision-capture.ts`, and `src/app/actions/decision-capture.ts`.
+- Retrieval ranking: `src/db/queries/retrieval.ts` and `src/lib/retrieval`.
+- Product Intelligence: `src/db/queries/product-intelligence.ts`, `src/lib/product-intelligence`, and `src/ai/operations/generate-product-intelligence-answer.ts`.
+
+How to add a new AI provider:
+
+1. Add a provider implementation satisfying `AIProvider`.
+2. Extend `src/ai/config.ts` to parse the new provider name and required env vars.
+3. Keep text, structured output, and embedding operations behind the provider interface.
+4. Add tests for config parsing, malformed provider responses, retries, and schema validation.
+5. Do not call provider SDKs directly from React components or database services.
+
+How to add a future integration:
+
+1. Model imported content as a `source` first.
+2. Store integration-specific locators in source metadata.
+3. Extract structured candidates rather than trusting imported text directly.
+4. Require human review before creating verified Product Memory.
+5. Preserve source evidence and audit events.
+
+Checks before handoff:
+
+```bash
+npm run lint
+npm run typecheck
+npm run test
+npm run eval
+npm run build
+```
 
 ## Commands
 
