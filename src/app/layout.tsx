@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+
+import { PRODUCT_NAME } from "@/config/product";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Context OS",
+  title: PRODUCT_NAME,
   description:
     "A product-memory workspace for source-backed Context Packs.",
 };

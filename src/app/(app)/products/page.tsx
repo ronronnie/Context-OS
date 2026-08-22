@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { SectionHeader } from "@/components/section-header";
 import { Button } from "@/components/ui/button";
+import { PRODUCT_NAME } from "@/config/product";
 import { getProductsForUser } from "@/db/queries";
 import { requireUser } from "@/lib/auth/session";
 import { productRoute } from "@/lib/routes";
@@ -18,7 +19,7 @@ export default async function ProductsPage() {
       <PageHeader
         eyebrow="Product Architecture"
         title="Products"
-        description="Create and manage the mature products whose modules, features, sources, and verified memory form Context OS."
+        description={`Create and manage the mature products whose modules, features, sources, and verified memory form ${PRODUCT_NAME}.`}
         actions={[]}
       />
 

@@ -1,3 +1,5 @@
+import { PRODUCT_NAME } from "@/config/product";
+
 export type DecisionCapturePromptInput = {
   product: {
     id: string;
@@ -37,7 +39,7 @@ export type DecisionCapturePromptInput = {
 export function buildDecisionCapturePrompts(input: DecisionCapturePromptInput) {
   return {
     systemPrompt: [
-      "You extract decision candidates for Context OS Product Memory.",
+      `You extract decision candidates for ${PRODUCT_NAME} Product Memory.`,
       "You are not a chatbot and you do not provide implementation advice.",
       "Treat the pasted task outcome as a source that still needs human review.",
       "Do not mark anything as trusted or verified.",

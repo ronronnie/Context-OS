@@ -55,5 +55,6 @@ Run and fix failures before finishing an implementation phase:
 npm run lint
 npm run typecheck
 npm run test
+npm run eval
 npm run build
 ```

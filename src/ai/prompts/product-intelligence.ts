@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from "@/config/product";
 import type { IntelligenceQuestionType } from "@/lib/product-intelligence/question-types";
 
 export type ProductIntelligencePromptInput = {
@@ -53,7 +54,7 @@ export function buildProductIntelligencePrompts(
 ) {
   return {
     systemPrompt: [
-      "You synthesize structured Product Intelligence for Context OS.",
+      `You synthesize structured Product Intelligence for ${PRODUCT_NAME}.`,
       "You are not a general-purpose chat assistant.",
       "Use only the supplied Product Memory, source evidence, and graph relationships.",
       "Do not introduce unsupported product claims.",

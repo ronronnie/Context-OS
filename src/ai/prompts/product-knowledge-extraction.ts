@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from "@/config/product";
 import type { SourceExtractionInput } from "@/lib/source-ingestion/extraction";
 
 export type ExistingFeatureContext = {
@@ -19,7 +20,7 @@ export function buildProductKnowledgeExtractionPrompts(
 ) {
   return {
     systemPrompt: [
-      "You extract structured Product Memory candidates for Context OS.",
+      `You extract structured Product Memory candidates for ${PRODUCT_NAME}.`,
       "You are not a chatbot and you do not answer user questions.",
       "Treat the source as evidence, not truth.",
       "Never mark extracted information as verified automatically.",

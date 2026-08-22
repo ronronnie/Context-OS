@@ -30,8 +30,7 @@ export const navItems: NavItem[] = [
 export const demoProduct = {
   name: "Nextzen Ops",
   slug: "nextzen-ops",
-  description:
-    "Fictional mature internal operations product used for Context OS MVP workflows.",
+  description: `Fictional mature internal operations product used for ${PRODUCT_NAME} MVP workflows.`,
 };
 
 export const moduleSummaries = [

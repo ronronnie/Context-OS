@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { SectionHeader } from "@/components/section-header";
 import { Button } from "@/components/ui/button";
+import { PRODUCT_NAME } from "@/config/product";
 import { getTaskCreationOptions, getTasksForUser } from "@/db/queries";
 import { requireUser } from "@/lib/auth/session";
 import { taskIntentOptions } from "@/lib/context-packs/forms";
@@ -43,7 +44,7 @@ export default async function TasksPage() {
         >
           <SectionHeader
             title="New task"
-            description="Describe the work and Context OS will retrieve Product Memory for it."
+            description={`Describe the work and ${PRODUCT_NAME} will retrieve Product Memory for it.`}
           />
           <div className="space-y-4 p-4">
             <label className="block">
