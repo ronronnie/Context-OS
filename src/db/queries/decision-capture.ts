@@ -266,7 +266,13 @@ export async function getTaskOutcomeReview(
   const candidates = await db
     .select()
     .from(decisionCaptureCandidates)
-    .where(eq(decisionCaptureCandidates.outcomeId, outcome.id))
+    .where(
+      and(
+        eq(decisionCaptureCandidates.productId, productId),
+        eq(decisionCaptureCandidates.contextPackId, contextPackId),
+        eq(decisionCaptureCandidates.outcomeId, outcome.id),
+      ),
+    )
     .orderBy(asc(decisionCaptureCandidates.createdAt));
   const existingKnowledge = await getExistingKnowledgeForDecisionCapture(
     productId,
@@ -398,7 +404,14 @@ export async function approveDecisionCaptureCandidate(
       approvedKnowledgeItemId: knowledge.id,
       updatedAt: new Date(),
     })
-    .where(eq(decisionCaptureCandidates.id, candidateId));
+    .where(
+      and(
+        eq(decisionCaptureCandidates.id, candidateId),
+        eq(decisionCaptureCandidates.productId, productId),
+        eq(decisionCaptureCandidates.contextPackId, contextPackId),
+        eq(decisionCaptureCandidates.outcomeId, outcomeId),
+      ),
+    );
 
   await recordProductAuditEvent(
     {
@@ -525,7 +538,12 @@ async function getExistingKnowledgeForDecisionCapture(
       knowledgeItems,
       eq(contextPackItems.knowledgeItemId, knowledgeItems.id),
     )
-    .where(eq(contextPackItems.contextPackId, contextPackId));
+    .where(
+      and(
+        eq(contextPackItems.contextPackId, contextPackId),
+        eq(knowledgeItems.productId, productId),
+      ),
+    );
   const scopeConditions = [eq(knowledgeItems.productId, productId)];
 
   if (moduleId) {

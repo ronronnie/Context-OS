@@ -31,6 +31,14 @@ describe("Nextzen evaluation harness", () => {
     expect(summary.tenantIsolationPass).toBe(true);
   });
 
+  it("rejects foreign tenant memory from selected Context Pack candidates", () => {
+    const result = evaluateNextzenCase(nextzenEvaluationCases[0]);
+
+    expect(result.tenantIsolationPass).toBe(true);
+    expect(result.selectedTitles).not.toContain("Foreign tenant approval policy");
+    expect(result.contextPack).not.toContain("Another customer's private approval policy");
+  });
+
   it("surfaces source evidence and warnings in compiled Context Packs", () => {
     const bulkLimitCase = nextzenEvaluationCases.find(
       (evaluationCase) => evaluationCase.id === "outdated-bulk-api-knowledge",

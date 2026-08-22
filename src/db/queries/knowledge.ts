@@ -399,7 +399,12 @@ export async function getKnowledgeItemDetail(
     .select({ source: sources })
     .from(knowledgeSources)
     .innerJoin(sources, eq(knowledgeSources.sourceId, sources.id))
-    .where(eq(knowledgeSources.knowledgeItemId, knowledgeItemId));
+    .where(
+      and(
+        eq(knowledgeSources.knowledgeItemId, knowledgeItemId),
+        eq(sources.productId, productId),
+      ),
+    );
   const outgoingRelationships = await db
     .select()
     .from(knowledgeRelationships)
@@ -426,12 +431,22 @@ export async function getKnowledgeItemDetail(
     ? await db
         .select()
         .from(knowledgeItems)
-        .where(inArray(knowledgeItems.id, relationshipIds))
+        .where(
+          and(
+            eq(knowledgeItems.productId, productId),
+            inArray(knowledgeItems.id, relationshipIds),
+          ),
+        )
     : [];
   const history = await db
     .select()
     .from(knowledgeEvents)
-    .where(eq(knowledgeEvents.knowledgeItemId, knowledgeItemId))
+    .where(
+      and(
+        eq(knowledgeEvents.productId, productId),
+        eq(knowledgeEvents.knowledgeItemId, knowledgeItemId),
+      ),
+    )
     .orderBy(desc(knowledgeEvents.createdAt));
   const productKnowledge = await db
     .select()

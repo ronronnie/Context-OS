@@ -89,7 +89,7 @@ export async function runProductIntelligenceQuery(
     provider,
   );
   const memoryIds = retrieval.results.map((result) => result.knowledgeItem.id);
-  const evidence = await getSourcesForMemory(memoryIds, db);
+  const evidence = await getSourcesForMemory(input.productId, memoryIds, db);
   const evidenceMap = evidence.reduce((map, row) => {
     const list = map.get(row.knowledgeItemId) ?? [];
     list.push(row.source);
@@ -241,7 +241,7 @@ async function getValidatedScope(
   };
 }
 
-async function getSourcesForMemory(knowledgeIds: string[], db: AppDb) {
+async function getSourcesForMemory(productId: string, knowledgeIds: string[], db: AppDb) {
   if (!knowledgeIds.length) {
     return [];
   }
@@ -253,7 +253,12 @@ async function getSourcesForMemory(knowledgeIds: string[], db: AppDb) {
     })
     .from(knowledgeSources)
     .innerJoin(sources, eq(knowledgeSources.sourceId, sources.id))
-    .where(inArray(knowledgeSources.knowledgeItemId, knowledgeIds));
+    .where(
+      and(
+        eq(sources.productId, productId),
+        inArray(knowledgeSources.knowledgeItemId, knowledgeIds),
+      ),
+    );
 }
 
 async function getGraphRelationshipsForIntelligence(
@@ -290,7 +295,12 @@ async function getGraphRelationshipsForIntelligence(
     ? await db
         .select()
         .from(features)
-        .where(inArray(features.id, relatedFeatureIds))
+        .where(
+          and(
+            eq(features.productId, productId),
+            inArray(features.id, relatedFeatureIds),
+          ),
+        )
     : [];
   const featureNameById = new Map(
     relatedFeatures.map((feature) => [feature.id, feature.name]),
@@ -326,7 +336,12 @@ async function getGraphRelationshipsForIntelligence(
     ? await db
         .select()
         .from(knowledgeItems)
-        .where(inArray(knowledgeItems.id, relatedKnowledgeIds))
+        .where(
+          and(
+            eq(knowledgeItems.productId, productId),
+            inArray(knowledgeItems.id, relatedKnowledgeIds),
+          ),
+        )
     : [];
   const knowledgeTitleById = new Map(
     relatedKnowledge.map((item) => [item.id, item.title]),

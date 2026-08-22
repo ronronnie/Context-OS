@@ -9,6 +9,7 @@ The MVP uses fictional Nextzen Demo data. Do not ingest real employer data or pr
 - [Architecture](docs/architecture.md): App Router structure, server/client boundaries, domain/data layers, authorization, retrieval, Context Packs, and decision capture.
 - [Product Memory Model](docs/product-memory-model.md): Product Graph structure, knowledge types, authority, confidence, lifecycle, evidence, relationships, history, and conflict resolution.
 - [Demo Script](docs/demo-script.md): Step-by-step Nextzen Demo walkthrough.
+- [Security And Trust Boundaries](docs/security-and-trust-boundaries.md): Tenant isolation, vector retrieval isolation, secrets, AI trust, source content, and export risks.
 - [Figma Integration Plan](docs/figma-integration-plan.md): Later Figma integration boundary and current manual Figma evidence placeholders.
 - [Project Rules](PROJECT_RULES.md): Product vision, stack, architecture boundaries, and required checks.
 

@@ -55,6 +55,10 @@ export function ContextPackExportPanel({
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
               Choose a tool-specific format and copy or download the complete prompt.
             </p>
+            <p className="mt-2 max-w-3xl rounded-md border border-[#fde68a] bg-[#fffbeb] px-3 py-2 text-xs leading-5 text-[#92400e]">
+              Context Packs can contain sensitive product rules, constraints, and
+              evidence. Share exports only with approved AI tools and workspaces.
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button

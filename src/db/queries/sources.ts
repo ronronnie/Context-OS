@@ -181,7 +181,12 @@ export async function getSourceDetail(
       knowledgeItems,
       eq(knowledgeSources.knowledgeItemId, knowledgeItems.id),
     )
-    .where(eq(knowledgeSources.sourceId, source.id))
+    .where(
+      and(
+        eq(knowledgeSources.sourceId, source.id),
+        eq(knowledgeItems.productId, productId),
+      ),
+    )
     .orderBy(desc(knowledgeItems.updatedAt));
   const auditTrail = await db
     .select()

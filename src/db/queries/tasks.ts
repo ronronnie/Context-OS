@@ -213,7 +213,12 @@ export async function getContextPackDetail(
         await db
           .select()
           .from(modules)
-          .where(eq(modules.id, detail.feature.moduleId))
+          .where(
+            and(
+              eq(modules.id, detail.feature.moduleId),
+              eq(modules.productId, productId),
+            ),
+          )
           .limit(1)
       )[0] ?? null
     : null;
@@ -227,10 +232,15 @@ export async function getContextPackDetail(
       knowledgeItems,
       eq(contextPackItems.knowledgeItemId, knowledgeItems.id),
     )
-    .where(eq(contextPackItems.contextPackId, contextPackId))
+    .where(
+      and(
+        eq(contextPackItems.contextPackId, contextPackId),
+        eq(knowledgeItems.productId, productId),
+      ),
+    )
     .orderBy(desc(contextPackItems.relevanceScore));
   const knowledgeIds = itemRows.map((row) => row.knowledgeItem.id);
-  const evidence = await getSourcesForKnowledge(knowledgeIds, db);
+  const evidence = await getSourcesForKnowledge(productId, knowledgeIds, db);
   const productModules = await db
     .select()
     .from(modules)
@@ -244,7 +254,12 @@ export async function getContextPackDetail(
   const outcomes = await db
     .select()
     .from(taskOutcomes)
-    .where(eq(taskOutcomes.contextPackId, contextPackId))
+    .where(
+      and(
+        eq(taskOutcomes.productId, productId),
+        eq(taskOutcomes.contextPackId, contextPackId),
+      ),
+    )
     .orderBy(desc(taskOutcomes.createdAt))
     .limit(5);
 
@@ -312,7 +327,7 @@ async function generateContextPackForTask(
     db,
   );
   const knowledgeIds = retrievalResult.results.map((result) => result.knowledgeItem.id);
-  const evidence = await getSourcesForKnowledge(knowledgeIds, db);
+  const evidence = await getSourcesForKnowledge(productId, knowledgeIds, db);
   const sourceMap = new Map<string, typeof sources.$inferSelect[]>();
 
   for (const row of evidence) {
@@ -414,7 +429,7 @@ async function assertFeatureBelongsToProduct(
   }
 }
 
-async function getSourcesForKnowledge(knowledgeIds: string[], db: AppDb) {
+async function getSourcesForKnowledge(productId: string, knowledgeIds: string[], db: AppDb) {
   if (!knowledgeIds.length) {
     return [];
   }
@@ -426,5 +441,10 @@ async function getSourcesForKnowledge(knowledgeIds: string[], db: AppDb) {
     })
     .from(knowledgeSources)
     .innerJoin(sources, eq(knowledgeSources.sourceId, sources.id))
-    .where(inArray(knowledgeSources.knowledgeItemId, knowledgeIds));
+    .where(
+      and(
+        eq(sources.productId, productId),
+        inArray(knowledgeSources.knowledgeItemId, knowledgeIds),
+      ),
+    );
 }

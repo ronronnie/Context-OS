@@ -168,12 +168,23 @@ export async function getSourceExtractionReview(
   const candidates = await db
     .select()
     .from(sourceExtractionCandidates)
-    .where(eq(sourceExtractionCandidates.extractionId, extractionId))
+    .where(
+      and(
+        eq(sourceExtractionCandidates.productId, productId),
+        eq(sourceExtractionCandidates.sourceId, sourceId),
+        eq(sourceExtractionCandidates.extractionId, extractionId),
+      ),
+    )
     .orderBy(asc(sourceExtractionCandidates.createdAt));
   const conflicts = await db
     .select()
     .from(knowledgeConflicts)
-    .where(eq(knowledgeConflicts.extractionId, extractionId))
+    .where(
+      and(
+        eq(knowledgeConflicts.productId, productId),
+        eq(knowledgeConflicts.extractionId, extractionId),
+      ),
+    )
     .orderBy(asc(knowledgeConflicts.createdAt));
 
   return {
@@ -276,7 +287,7 @@ async function approveExtractionCandidateInternal(
   }
 
   if (!allowPendingConflicts) {
-    await assertNoPendingConflicts(candidate.id, db);
+    await assertNoPendingConflicts(productId, candidate.id, db);
   }
 
   const [knowledge] = await db
@@ -319,7 +330,14 @@ async function approveExtractionCandidateInternal(
       approvedKnowledgeItemId: knowledge.id,
       updatedAt: new Date(),
     })
-    .where(eq(sourceExtractionCandidates.id, candidateId));
+    .where(
+      and(
+        eq(sourceExtractionCandidates.id, candidateId),
+        eq(sourceExtractionCandidates.productId, productId),
+        eq(sourceExtractionCandidates.sourceId, sourceId),
+        eq(sourceExtractionCandidates.extractionId, extractionId),
+      ),
+    );
 
   await recordProductAuditEvent(
     {
@@ -474,6 +492,7 @@ export async function approveAllPendingExtractionCandidates(
     .from(knowledgeConflicts)
     .where(
       and(
+        eq(knowledgeConflicts.productId, productId),
         eq(knowledgeConflicts.extractionId, extractionId),
         eq(knowledgeConflicts.resolution, "pending"),
       ),
@@ -610,12 +629,17 @@ async function getPendingCandidate(
   return rows[0] ?? null;
 }
 
-async function assertNoPendingConflicts(candidateId: string, db: AppDb) {
+async function assertNoPendingConflicts(
+  productId: string,
+  candidateId: string,
+  db: AppDb,
+) {
   const rows = await db
     .select({ id: knowledgeConflicts.id })
     .from(knowledgeConflicts)
     .where(
       and(
+        eq(knowledgeConflicts.productId, productId),
         eq(knowledgeConflicts.candidateId, candidateId),
         eq(knowledgeConflicts.resolution, "pending"),
       ),
@@ -659,7 +683,12 @@ async function markKnowledgeOutdated(
       validUntil: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(knowledgeItems.id, knowledgeItemId))
+    .where(
+      and(
+        eq(knowledgeItems.id, knowledgeItemId),
+        eq(knowledgeItems.productId, productId),
+      ),
+    )
     .returning();
 
   await db.insert(knowledgeEvents).values({
@@ -694,9 +723,12 @@ async function getVerifiedKnowledgeForConflictScope(
       .select()
       .from(featureRelationships)
       .where(
-        or(
-          eq(featureRelationships.fromFeatureId, featureId),
-          eq(featureRelationships.toFeatureId, featureId),
+        and(
+          eq(featureRelationships.productId, productId),
+          or(
+            eq(featureRelationships.fromFeatureId, featureId),
+            eq(featureRelationships.toFeatureId, featureId),
+          ),
         ),
       );
     const relatedFeatureIds = relationships.map((relationship) =>
